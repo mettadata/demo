@@ -46,6 +46,14 @@ function loadSortByDueDate(): boolean {
 	}
 }
 
+let _snapshotFn: (() => void) | null = null;
+export function registerSnapshotFn(fn: () => void): void {
+	_snapshotFn = fn;
+}
+function snapshot(): void {
+	if (_snapshotFn) _snapshotFn();
+}
+
 export const todos: Writable<Todo[]> = writable<Todo[]>(loadTodos());
 
 todos.subscribe((value) => {
@@ -111,6 +119,7 @@ export const sortedFilteredTodos: Readable<Todo[]> = derived(
 export function addTodo(text: string): void {
 	const trimmed = text.trim();
 	if (trimmed === '') return;
+	snapshot();
 	todos.update((current) => [
 		...current,
 		{
@@ -126,16 +135,19 @@ export function addTodo(text: string): void {
 }
 
 export function toggleTodo(id: string): void {
+	snapshot();
 	todos.update((current) =>
 		current.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
 	);
 }
 
 export function removeTodo(id: string): void {
+	snapshot();
 	todos.update((current) => current.filter((t) => t.id !== id));
 }
 
 export function updateTodo(id: string, fields: Partial<Pick<Todo, 'priority' | 'dueDate' | 'description'>>): void {
+	snapshot();
 	todos.update((current) =>
 		current.map((t) => (t.id === id ? { ...t, ...fields } : t))
 	);

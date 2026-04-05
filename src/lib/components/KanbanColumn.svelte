@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { ResolvedColumn } from '$lib/stores/kanban.js';
 	import { renameColumn, deleteColumn, moveCard } from '$lib/stores/kanban.js';
+	import { flip } from 'svelte/animate';
 	import KanbanCard from './KanbanCard.svelte';
 
 	let { column }: { column: ResolvedColumn } = $props();
@@ -8,7 +9,7 @@
 	let editing = $state(false);
 	let editTitle = $state('');
 	let dragOverCounter = $state(0);
-	let dropIndex = $state(0);
+	let dropIndex = $state(-1);
 
 	function startEditing() {
 		editing = true;
@@ -71,6 +72,10 @@
 
 	function handleDragLeave() {
 		dragOverCounter--;
+		if (dragOverCounter <= 0) {
+			dragOverCounter = 0;
+			dropIndex = -1;
+		}
 	}
 
 	function handleDrop(event: DragEvent) {
@@ -81,7 +86,18 @@
 		const todoId = event.dataTransfer.getData('text/plain');
 		if (!todoId) return;
 
-		moveCard(todoId, column.id, dropIndex);
+		const sourceColumnId = event.dataTransfer.getData('application/x-kanban-source');
+		let adjustedIndex = dropIndex;
+
+		if (sourceColumnId === column.id) {
+			const sourceCardIndex = column.cards.findIndex(c => c.id === todoId);
+			if (adjustedIndex > sourceCardIndex) {
+				adjustedIndex--;
+			}
+		}
+
+		moveCard(todoId, column.id, adjustedIndex);
+		dropIndex = -1;
 	}
 </script>
 
@@ -90,6 +106,7 @@
 	role="list"
 	aria-label="{column.title} column"
 	aria-dropeffect={dragOverCounter > 0 ? 'move' : 'none'}
+	data-column-id={column.id}
 	ondragover={handleDragOver}
 	ondragenter={handleDragEnter}
 	ondragleave={handleDragLeave}
@@ -131,6 +148,14 @@
 	{/if}
 
 	{#each column.cards as todo, i (todo.id)}
-		<KanbanCard {todo} columnId={column.id} columnTitle={column.title} index={i} />
+		<div animate:flip={{ duration: 200 }}>
+			{#if dropIndex >= 0 && dragOverCounter > 0 && i === dropIndex}
+				<div class="h-0.5 bg-blue-400 rounded-full mx-2 my-1"></div>
+			{/if}
+			<KanbanCard {todo} columnId={column.id} columnTitle={column.title} index={i} />
+		</div>
 	{/each}
+	{#if dropIndex >= 0 && dragOverCounter > 0 && dropIndex === column.cards.length}
+		<div class="h-0.5 bg-blue-400 rounded-full mx-2 my-1"></div>
+	{/if}
 </div>

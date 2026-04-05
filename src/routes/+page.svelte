@@ -6,6 +6,7 @@
 	import KanbanBoard from '$lib/components/KanbanBoard.svelte';
 	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 	import SortToggle from '$lib/components/SortToggle.svelte';
+	import SearchBar from '$lib/components/SearchBar.svelte';
 	import { viewPreference } from '$lib/stores/kanban.js';
 </script>
 
@@ -20,6 +21,7 @@
 		</div>
 	</div>
 	<TodoInput />
+	<SearchBar />
 	{#if $viewPreference === 'list'}
 		<TodoFilter />
 		<TodoList />

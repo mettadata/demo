@@ -41,6 +41,7 @@ describe('todo store', () => {
 	let sortTodosByDueDate: typeof import('./todos').sortTodosByDueDate;
 	let sortedFilteredTodos: typeof import('./todos').sortedFilteredTodos;
 	let sortByDueDate: typeof import('./todos').sortByDueDate;
+	let searchQuery: typeof import('./todos').searchQuery;
 	let STORAGE_KEY: string;
 	let SORT_STORAGE_KEY: string;
 
@@ -62,6 +63,7 @@ describe('todo store', () => {
 		sortTodosByDueDate = mod.sortTodosByDueDate;
 		sortedFilteredTodos = mod.sortedFilteredTodos;
 		sortByDueDate = mod.sortByDueDate;
+		searchQuery = mod.searchQuery;
 		STORAGE_KEY = mod.STORAGE_KEY;
 		SORT_STORAGE_KEY = mod.SORT_STORAGE_KEY;
 
@@ -69,6 +71,7 @@ describe('todo store', () => {
 		todos.set([]);
 		filter.set('all');
 		sortByDueDate.set(false);
+		searchQuery.set('');
 	});
 
 	it('addTodo creates todo with correct fields', () => {
@@ -280,5 +283,40 @@ describe('todo store', () => {
 	it('sortByDueDate persists to localStorage', () => {
 		sortByDueDate.set(true);
 		expect(localStorageMock.setItem).toHaveBeenCalledWith(SORT_STORAGE_KEY, 'true');
+	});
+
+	it('searchQuery filters todos by text (case-insensitive)', () => {
+		addTodo('Buy milk');
+		addTodo('Walk the dog');
+		addTodo('Buy eggs');
+
+		searchQuery.set('buy');
+		const result = get(filteredTodos);
+		expect(result).toHaveLength(2);
+		expect(result[0].text).toBe('Buy milk');
+		expect(result[1].text).toBe('Buy eggs');
+	});
+
+	it('searchQuery with empty string shows all todos', () => {
+		addTodo('Buy milk');
+		addTodo('Walk the dog');
+
+		searchQuery.set('');
+		expect(get(filteredTodos)).toHaveLength(2);
+
+		searchQuery.set('   ');
+		expect(get(filteredTodos)).toHaveLength(2);
+	});
+
+	it('searchQuery works alongside status filter', () => {
+		addTodo('Buy milk');
+		addTodo('Buy eggs');
+		toggleTodo(get(todos)[0].id); // complete "Buy milk"
+
+		filter.set('active');
+		searchQuery.set('buy');
+		const result = get(filteredTodos);
+		expect(result).toHaveLength(1);
+		expect(result[0].text).toBe('Buy eggs');
 	});
 });

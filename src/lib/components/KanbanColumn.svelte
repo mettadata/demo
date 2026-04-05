@@ -31,11 +31,15 @@
 		}
 	}
 
+	let deleteError = $state('');
+
 	function handleDelete() {
 		try {
 			deleteColumn(column.id);
+			deleteError = '';
 		} catch (error) {
-			// Cannot delete last column — silently ignore
+			deleteError = 'Cannot delete the last column';
+			setTimeout(() => { deleteError = ''; }, 3000);
 		}
 	}
 
@@ -85,6 +89,7 @@
 	class="bg-gray-100 rounded-lg p-3 flex flex-col gap-2 min-h-[200px] w-72 flex-shrink-0 {dragOverCounter > 0 ? 'bg-blue-50 border-2 border-blue-300' : ''}"
 	role="list"
 	aria-label="{column.title} column"
+	aria-dropeffect={dragOverCounter > 0 ? 'move' : 'none'}
 	ondragover={handleDragOver}
 	ondragenter={handleDragEnter}
 	ondragleave={handleDragLeave}
@@ -120,6 +125,10 @@
 			</button>
 		</div>
 	</div>
+
+	{#if deleteError}
+		<p class="text-xs text-red-500 bg-red-50 rounded px-2 py-1">{deleteError}</p>
+	{/if}
 
 	{#each column.cards as todo (todo.id)}
 		<KanbanCard {todo} columnId={column.id} columnTitle={column.title} />

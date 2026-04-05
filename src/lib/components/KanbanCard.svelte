@@ -22,11 +22,15 @@
 	role="listitem"
 	tabindex="0"
 	aria-label="{todo.text} in {columnTitle}"
+	aria-grabbed={dragging}
 	ondragstart={handleDragStart}
 	ondragend={handleDragEnd}
 	class="bg-white p-3 rounded-lg shadow-sm border border-gray-200 cursor-grab {todo.completed ? 'border-l-4 border-l-green-400' : ''} {dragging ? 'opacity-50' : ''}"
 >
-	<span class={todo.completed ? 'line-through text-gray-400' : ''}>
-		{todo.text}
-	</span>
+	<div class="flex items-center gap-2">
+		<span class="w-2 h-2 rounded-full flex-shrink-0 {todo.completed ? 'bg-green-400' : 'bg-blue-400'}"></span>
+		<span class={todo.completed ? 'line-through text-gray-400' : ''}>
+			{todo.text}
+		</span>
+	</div>
 </div>

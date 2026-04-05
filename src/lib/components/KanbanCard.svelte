@@ -1,13 +1,18 @@
 <script lang="ts">
 	import { getContext } from 'svelte';
 	import type { Todo } from '$lib/stores/todos.js';
+	import type { Priority } from '$lib/stores/todos.js';
+	import { updateTodo } from '$lib/stores/todos.js';
 	import { moveCard } from '$lib/stores/kanban.js';
 	import { kanbanBoard } from '$lib/stores/kanban.js';
 	import { get } from 'svelte/store';
+	import PriorityBadge from './PriorityBadge.svelte';
+	import DueDateDisplay from './DueDateDisplay.svelte';
 
 	let { todo, columnId, columnTitle, index }: { todo: Todo; columnId: string; columnTitle: string; index: number } = $props();
 
 	let dragging = $state(false);
+	let showEdit = $state(false);
 
 	const keyboardDrag = getContext<{
 		state: {
@@ -184,4 +189,50 @@
 			{todo.text}
 		</span>
 	</div>
+	{#if todo.priority !== 'none' || todo.dueDate !== null}
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div
+			class="flex items-center gap-2 mt-1 cursor-pointer"
+			onclick={(e) => { e.stopPropagation(); showEdit = !showEdit; }}
+		>
+			<PriorityBadge priority={todo.priority} />
+			<DueDateDisplay dueDate={todo.dueDate} />
+		</div>
+	{:else}
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div
+			class="mt-1 cursor-pointer"
+			onclick={(e) => { e.stopPropagation(); showEdit = !showEdit; }}
+		>
+			<span class="text-xs text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">+ details</span>
+		</div>
+	{/if}
+	{#if showEdit}
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div class="flex items-center gap-2 mt-1" onclick={(e) => e.stopPropagation()}>
+			<select
+				class="text-xs px-1 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-600 dark:text-white"
+				value={todo.priority}
+				onchange={(e) => updateTodo(todo.id, { priority: (e.currentTarget as HTMLSelectElement).value as Priority })}
+				onpointerdown={(e) => e.stopPropagation()}
+				aria-label="Priority for {todo.text}"
+			>
+				<option value="none">None</option>
+				<option value="low">Low</option>
+				<option value="medium">Medium</option>
+				<option value="high">High</option>
+			</select>
+			<input
+				type="date"
+				class="text-xs px-1 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-600 dark:text-white"
+				value={todo.dueDate ?? ''}
+				onchange={(e) => updateTodo(todo.id, { dueDate: (e.currentTarget as HTMLInputElement).value || null })}
+				onpointerdown={(e) => e.stopPropagation()}
+				aria-label="Due date for {todo.text}"
+			/>
+		</div>
+	{/if}
 </div>

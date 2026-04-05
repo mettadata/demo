@@ -1,16 +1,21 @@
 import { writable, derived } from 'svelte/store';
 import type { Writable, Readable } from 'svelte/store';
 
+export type Priority = 'none' | 'low' | 'medium' | 'high';
+
 export interface Todo {
 	id: string;
 	text: string;
 	completed: boolean;
 	createdAt: string;
+	priority: Priority;
+	dueDate: string | null;
 }
 
 export type Filter = 'all' | 'active' | 'completed';
 
 export const STORAGE_KEY = 'todos';
+export const SORT_STORAGE_KEY = 'sort-by-due-date';
 
 function loadTodos(): Todo[] {
 	if (typeof window === 'undefined') return [];
@@ -19,9 +24,23 @@ function loadTodos(): Todo[] {
 		if (raw === null) return [];
 		const parsed = JSON.parse(raw);
 		if (!Array.isArray(parsed)) return [];
-		return parsed;
+		return parsed.map((t: Record<string, unknown>) => ({
+			...t,
+			priority: (t.priority as Priority) ?? 'none',
+			dueDate: (t.dueDate as string | null) ?? null
+		})) as Todo[];
 	} catch {
 		return [];
+	}
+}
+
+function loadSortByDueDate(): boolean {
+	if (typeof window === 'undefined') return false;
+	try {
+		const raw = localStorage.getItem(SORT_STORAGE_KEY);
+		return raw === 'true';
+	} catch {
+		return false;
 	}
 }
 
@@ -52,6 +71,34 @@ export const filteredTodos: Readable<Todo[]> = derived(
 	}
 );
 
+export const sortByDueDate: Writable<boolean> = writable<boolean>(loadSortByDueDate());
+
+sortByDueDate.subscribe((value) => {
+	if (typeof window === 'undefined') return;
+	try {
+		localStorage.setItem(SORT_STORAGE_KEY, String(value));
+	} catch {
+		console.warn('Failed to persist sort preference to localStorage');
+	}
+});
+
+export function sortTodosByDueDate(todos: Todo[]): Todo[] {
+	return [...todos].sort((a, b) => {
+		if (a.dueDate === null && b.dueDate === null) return 0;
+		if (a.dueDate === null) return 1;
+		if (b.dueDate === null) return -1;
+		return a.dueDate.localeCompare(b.dueDate);
+	});
+}
+
+export const sortedFilteredTodos: Readable<Todo[]> = derived(
+	[filteredTodos, sortByDueDate],
+	([$filteredTodos, $sortByDueDate]) => {
+		if (!$sortByDueDate) return $filteredTodos;
+		return sortTodosByDueDate($filteredTodos);
+	}
+);
+
 export function addTodo(text: string): void {
 	const trimmed = text.trim();
 	if (trimmed === '') return;
@@ -61,7 +108,9 @@ export function addTodo(text: string): void {
 			id: crypto.randomUUID(),
 			text: trimmed,
 			completed: false,
-			createdAt: new Date().toISOString()
+			createdAt: new Date().toISOString(),
+			priority: 'none',
+			dueDate: null
 		}
 	]);
 }
@@ -74,4 +123,10 @@ export function toggleTodo(id: string): void {
 
 export function removeTodo(id: string): void {
 	todos.update((current) => current.filter((t) => t.id !== id));
+}
+
+export function updateTodo(id: string, fields: Partial<Pick<Todo, 'priority' | 'dueDate'>>): void {
+	todos.update((current) =>
+		current.map((t) => (t.id === id ? { ...t, ...fields } : t))
+	);
 }

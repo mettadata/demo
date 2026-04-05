@@ -37,7 +37,12 @@ describe('todo store', () => {
 	let addTodo: typeof import('./todos').addTodo;
 	let toggleTodo: typeof import('./todos').toggleTodo;
 	let removeTodo: typeof import('./todos').removeTodo;
+	let updateTodo: typeof import('./todos').updateTodo;
+	let sortTodosByDueDate: typeof import('./todos').sortTodosByDueDate;
+	let sortedFilteredTodos: typeof import('./todos').sortedFilteredTodos;
+	let sortByDueDate: typeof import('./todos').sortByDueDate;
 	let STORAGE_KEY: string;
+	let SORT_STORAGE_KEY: string;
 
 	beforeEach(async () => {
 		vi.resetModules();
@@ -53,11 +58,17 @@ describe('todo store', () => {
 		addTodo = mod.addTodo;
 		toggleTodo = mod.toggleTodo;
 		removeTodo = mod.removeTodo;
+		updateTodo = mod.updateTodo;
+		sortTodosByDueDate = mod.sortTodosByDueDate;
+		sortedFilteredTodos = mod.sortedFilteredTodos;
+		sortByDueDate = mod.sortByDueDate;
 		STORAGE_KEY = mod.STORAGE_KEY;
+		SORT_STORAGE_KEY = mod.SORT_STORAGE_KEY;
 
 		// Reset store to empty
 		todos.set([]);
 		filter.set('all');
+		sortByDueDate.set(false);
 	});
 
 	it('addTodo creates todo with correct fields', () => {
@@ -178,5 +189,96 @@ describe('todo store', () => {
 		vi.resetModules();
 		const mod2 = await import('./todos');
 		expect(get(mod2.todos)).toEqual([]);
+	});
+
+	it('addTodo includes priority and dueDate defaults', () => {
+		addTodo('Test todo');
+		const items = get(todos);
+		expect(items).toHaveLength(1);
+		expect(items[0].priority).toBe('none');
+		expect(items[0].dueDate).toBeNull();
+	});
+
+	it('legacy migration defaults missing priority and dueDate', async () => {
+		const legacyTodo = {
+			id: 'legacy-1',
+			text: 'Old todo',
+			completed: false,
+			createdAt: '2024-01-01T00:00:00.000Z'
+		};
+		localStorageMock.setItem(STORAGE_KEY, JSON.stringify([legacyTodo]));
+
+		vi.resetModules();
+		const mod2 = await import('./todos');
+		const items = get(mod2.todos);
+		expect(items).toHaveLength(1);
+		expect(items[0].priority).toBe('none');
+		expect(items[0].dueDate).toBeNull();
+	});
+
+	it('updateTodo sets priority', () => {
+		addTodo('Test todo');
+		const id = get(todos)[0].id;
+		updateTodo(id, { priority: 'high' });
+		expect(get(todos)[0].priority).toBe('high');
+	});
+
+	it('updateTodo sets dueDate', () => {
+		addTodo('Test todo');
+		const id = get(todos)[0].id;
+		updateTodo(id, { dueDate: '2025-06-15' });
+		expect(get(todos)[0].dueDate).toBe('2025-06-15');
+	});
+
+	it('updateTodo clears dueDate', () => {
+		addTodo('Test todo');
+		const id = get(todos)[0].id;
+		updateTodo(id, { dueDate: '2025-06-15' });
+		expect(get(todos)[0].dueDate).toBe('2025-06-15');
+		updateTodo(id, { dueDate: null });
+		expect(get(todos)[0].dueDate).toBeNull();
+	});
+
+	it('sortTodosByDueDate sorts ascending with nulls last', () => {
+		const input = [
+			{ id: '1', text: 'C', completed: false, createdAt: '', priority: 'none' as const, dueDate: '2025-12-01' },
+			{ id: '2', text: 'A', completed: false, createdAt: '', priority: 'none' as const, dueDate: null },
+			{ id: '3', text: 'B', completed: false, createdAt: '', priority: 'none' as const, dueDate: '2025-06-01' }
+		];
+		const sorted = sortTodosByDueDate(input);
+		expect(sorted[0].dueDate).toBe('2025-06-01');
+		expect(sorted[1].dueDate).toBe('2025-12-01');
+		expect(sorted[2].dueDate).toBeNull();
+	});
+
+	it('sortedFilteredTodos applies sort when enabled', () => {
+		addTodo('Later');
+		updateTodo(get(todos)[0].id, { dueDate: '2025-12-01' });
+		addTodo('Sooner');
+		updateTodo(get(todos)[1].id, { dueDate: '2025-06-01' });
+		addTodo('No date');
+
+		sortByDueDate.set(true);
+		const result = get(sortedFilteredTodos);
+		expect(result[0].text).toBe('Sooner');
+		expect(result[1].text).toBe('Later');
+		expect(result[2].text).toBe('No date');
+	});
+
+	it('sortedFilteredTodos passes through when disabled', () => {
+		addTodo('Later');
+		updateTodo(get(todos)[0].id, { dueDate: '2025-12-01' });
+		addTodo('Sooner');
+		updateTodo(get(todos)[1].id, { dueDate: '2025-06-01' });
+
+		sortByDueDate.set(false);
+		const result = get(sortedFilteredTodos);
+		expect(result[0].text).toBe('Later');
+		expect(result[1].text).toBe('Sooner');
+	});
+
+	it('sortByDueDate persists to localStorage', () => {
+		sortByDueDate.set(true);
+		expect(localStorageMock.setItem).toHaveBeenCalledWith(SORT_STORAGE_KEY, 'true');
 	});
 });

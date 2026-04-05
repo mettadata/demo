@@ -1,10 +1,13 @@
 <script lang="ts">
 	import type { ResolvedColumn } from '$lib/stores/kanban.js';
 	import { renameColumn, deleteColumn, moveCard } from '$lib/stores/kanban.js';
+	import { sortByDueDate, sortTodosByDueDate } from '$lib/stores/todos.js';
 	import { flip } from 'svelte/animate';
 	import KanbanCard from './KanbanCard.svelte';
 
 	let { column }: { column: ResolvedColumn } = $props();
+
+	const sortedCards = $derived($sortByDueDate ? sortTodosByDueDate(column.cards) : column.cards);
 
 	let editing = $state(false);
 	let editTitle = $state('');
@@ -147,7 +150,7 @@
 		<p class="text-xs text-red-500 bg-red-50 rounded px-2 py-1">{deleteError}</p>
 	{/if}
 
-	{#each column.cards as todo, i (todo.id)}
+	{#each sortedCards as todo, i (todo.id)}
 		<div animate:flip={{ duration: 200 }}>
 			{#if dropIndex >= 0 && dragOverCounter > 0 && i === dropIndex}
 				<div class="h-0.5 bg-blue-400 rounded-full mx-2 my-1"></div>
@@ -155,7 +158,7 @@
 			<KanbanCard {todo} columnId={column.id} columnTitle={column.title} index={i} />
 		</div>
 	{/each}
-	{#if dropIndex >= 0 && dragOverCounter > 0 && dropIndex === column.cards.length}
+	{#if dropIndex >= 0 && dragOverCounter > 0 && dropIndex === sortedCards.length}
 		<div class="h-0.5 bg-blue-400 rounded-full mx-2 my-1"></div>
 	{/if}
 </div>

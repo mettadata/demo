@@ -1,7 +1,4 @@
-name: demo
-description: A simple todo list web app where users can create, complete, delete, and filter todos
-stack:
-  - SvelteKit
-  - TypeScript
-  - Tailwind CSS
-  - Vitest
+project:
+  name: demo
+  description: A simple todo list web app where users can create, complete, delete, and filter todos
+  stack: SvelteKit, TypeScript, Tailwind CSS, Vitest

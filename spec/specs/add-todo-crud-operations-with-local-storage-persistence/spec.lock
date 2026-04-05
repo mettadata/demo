@@ -1,0 +1,69 @@
+version: 10
+hash: sha256:e173cc95c6e6
+updated: 2026-04-05T15:31:14.023Z
+requirements:
+  - id: todo-data-model
+    hash: sha256:38e1b1109b5f
+    scenarios:
+      - todo-has-required-fields
+      - new-todo-defaults
+  - id: create-todo
+    hash: sha256:d27ae53c7311
+    scenarios:
+      - create-todo-with-valid-text
+      - reject-empty-input
+      - reject-blank-submission
+  - id: read-todos
+    hash: sha256:09d873f45285
+    scenarios:
+      - display-all-todos
+      - empty-state
+  - id: toggle-todo-completion
+    hash: sha256:6745832b6b92
+    scenarios:
+      - mark-todo-as-completed
+      - mark-completed-todo-as-active
+  - id: delete-todo
+    hash: sha256:116f06061412
+    scenarios:
+      - delete-existing-todo
+      - delete-last-todo
+  - id: localstorage-persistence
+    hash: sha256:db83feab5009
+    scenarios:
+      - persist-on-create
+      - persist-on-toggle
+      - persist-on-delete
+      - rehydrate-on-load
+      - handle-missing-localstorage-data
+      - handle-corrupted-localstorage-data
+      - round-trip-serialization
+  - id: client-side-filtering
+    hash: sha256:49ff893d958d
+    scenarios:
+      - filter-all
+      - filter-active
+      - filter-completed
+      - filter-does-not-mutate-store
+      - active-filter-indication
+  - id: svelte-store-architecture
+    hash: sha256:46b80f61dcfe
+    scenarios:
+      - store-exports-required-functions
+      - add-todo-via-store-function
+      - toggle-todo-via-store-function
+      - remove-todo-via-store-function
+  - id: component-structure
+    hash: sha256:36f895bc28b8
+    scenarios:
+      - component-files-exist
+      - page-composes-components
+  - id: unit-test-coverage
+    hash: sha256:cf0df7101bc3
+    scenarios:
+      - test-add-todo
+      - test-toggle-todo
+      - test-remove-todo
+      - test-filter-active
+      - test-filter-completed
+      - test-localstorage-round-trip

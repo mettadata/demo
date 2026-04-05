@@ -1,0 +1,64 @@
+version: 10
+hash: sha256:5b0d8d4dbc94
+updated: 2026-04-05T15:31:19.858Z
+requirements:
+  - id: kanban-data-model
+    hash: sha256:94dd249f1e3a
+    scenarios:
+      - store-initializes-with-defaults
+      - store-initializes-from-persisted-state
+      - orphaned-card-cleanup
+  - id: column-crud
+    hash: sha256:122625ce6d78
+    scenarios:
+      - add-column
+      - rename-column
+      - rename-column-empty-title
+      - delete-column-with-cards
+      - delete-last-column-prevented
+  - id: card-drag-and-drop-between-columns
+    hash: sha256:da20a36c8c59
+    scenarios:
+      - drag-card-to-another-column
+      - drag-card-to-empty-column
+      - drag-visual-feedback
+  - id: card-reordering-within-column
+    hash: sha256:a6eb5952703e
+    scenarios:
+      - reorder-card-within-column
+      - reorder-single-card-noop
+  - id: localstorage-persistence
+    hash: sha256:c0167c5c38e3
+    scenarios:
+      - persist-on-mutation
+      - persist-view-preference
+      - restore-view-preference-on-load
+  - id: view-toggle
+    hash: sha256:6f83b37d8010
+    scenarios:
+      - toggle-to-kanban-view
+      - toggle-to-list-view
+  - id: sync-with-todo-store
+    hash: sha256:9e0e99e4f0c6
+    scenarios:
+      - new-todo-appears-in-first-column
+      - deleted-todo-removed-from-board
+      - completing-todo-does-not-move-card
+  - id: board-component-structure
+    hash: sha256:3db5e191b601
+    scenarios:
+      - board-renders-all-columns
+      - card-displays-todo-data
+  - id: accessibility-for-drag-and-drop
+    hash: sha256:277ae166aa33
+    scenarios:
+      - screen-reader-card-announcement
+      - keyboard-card-movement
+      - aria-attributes-during-drag
+  - id: unit-tests-for-kanban-store
+    hash: sha256:5254acecc28f
+    scenarios:
+      - test-add-column
+      - test-move-card
+      - test-delete-column-reassigns-cards
+      - test-persistence-called-on-mutation

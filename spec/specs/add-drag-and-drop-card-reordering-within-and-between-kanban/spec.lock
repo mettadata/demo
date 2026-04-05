@@ -1,0 +1,70 @@
+version: 14
+hash: sha256:5a2ccdd06761
+updated: 2026-04-05T16:06:06.339Z
+requirements:
+  - id: drop-position-indicator
+    hash: sha256:2e978fb53ffe
+    scenarios:
+      - indicator-appears-between-cards
+      - indicator-at-end-of-column
+      - indicator-in-empty-column
+      - indicator-disappears-on-drag-leave
+  - id: same-column-reorder-accuracy
+    hash: sha256:420d14dd58e4
+    scenarios:
+      - reorder-card-downward-within-column
+      - reorder-card-upward-within-column
+      - dragged-card-ghosts-in-original-slot
+  - id: transition-animations
+    hash: sha256:119bf4a7205d
+    scenarios:
+      - cards-animate-after-drop
+      - rapid-consecutive-reorders
+  - id: keyboard-accessible-reordering
+    hash: sha256:607251da93b6
+    scenarios:
+      - pick-up-card-with-keyboard
+      - move-card-within-column-via-keyboard
+      - move-card-between-columns-via-keyboard
+      - cancel-keyboard-reorder
+      - confirm-keyboard-reorder
+  - id: touch-support
+    hash: sha256:78905b062bfe
+    scenarios:
+      - long-press-initiates-touch-drag
+      - touch-move-shows-drop-indicator
+      - touch-drop-completes-move
+      - scroll-prevention-during-touch-drag
+  - id: drop-position-indicator
+    hash: sha256:2e978fb53ffe
+    scenarios:
+      - indicator-appears-between-cards
+      - indicator-at-end-of-column
+      - indicator-in-empty-column
+      - indicator-disappears-on-drag-leave
+  - id: same-column-reorder-accuracy
+    hash: sha256:420d14dd58e4
+    scenarios:
+      - reorder-card-downward-within-column
+      - reorder-card-upward-within-column
+      - dragged-card-ghosts-in-original-slot
+  - id: transition-animations
+    hash: sha256:119bf4a7205d
+    scenarios:
+      - cards-animate-after-drop
+      - rapid-consecutive-reorders
+  - id: keyboard-accessible-reordering
+    hash: sha256:607251da93b6
+    scenarios:
+      - pick-up-card-with-keyboard
+      - move-card-within-column-via-keyboard
+      - move-card-between-columns-via-keyboard
+      - cancel-keyboard-reorder
+      - confirm-keyboard-reorder
+  - id: touch-support
+    hash: sha256:78905b062bfe
+    scenarios:
+      - long-press-initiates-touch-drag
+      - touch-move-shows-drop-indicator
+      - touch-drop-completes-move
+      - scroll-prevention-during-touch-drag

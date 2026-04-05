@@ -42,6 +42,9 @@ describe('todo store', () => {
 	let sortedFilteredTodos: typeof import('./todos').sortedFilteredTodos;
 	let sortByDueDate: typeof import('./todos').sortByDueDate;
 	let searchQuery: typeof import('./todos').searchQuery;
+	let addAttachment: typeof import('./todos').addAttachment;
+	let removeAttachment: typeof import('./todos').removeAttachment;
+	let getLastPersistError: typeof import('./todos').getLastPersistError;
 	let STORAGE_KEY: string;
 	let SORT_STORAGE_KEY: string;
 
@@ -64,6 +67,9 @@ describe('todo store', () => {
 		sortedFilteredTodos = mod.sortedFilteredTodos;
 		sortByDueDate = mod.sortByDueDate;
 		searchQuery = mod.searchQuery;
+		addAttachment = mod.addAttachment;
+		removeAttachment = mod.removeAttachment;
+		getLastPersistError = mod.getLastPersistError;
 		STORAGE_KEY = mod.STORAGE_KEY;
 		SORT_STORAGE_KEY = mod.SORT_STORAGE_KEY;
 
@@ -309,9 +315,9 @@ describe('todo store', () => {
 
 	it('sortTodosByDueDate sorts ascending with nulls last', () => {
 		const input = [
-			{ id: '1', text: 'C', description: '', completed: false, createdAt: '', priority: 'none' as const, dueDate: '2025-12-01', labelIds: [] },
-			{ id: '2', text: 'A', description: '', completed: false, createdAt: '', priority: 'none' as const, dueDate: null, labelIds: [] },
-			{ id: '3', text: 'B', description: '', completed: false, createdAt: '', priority: 'none' as const, dueDate: '2025-06-01', labelIds: [] }
+			{ id: '1', text: 'C', description: '', completed: false, createdAt: '', priority: 'none' as const, dueDate: '2025-12-01', labelIds: [], activityLog: [], attachments: [] },
+			{ id: '2', text: 'A', description: '', completed: false, createdAt: '', priority: 'none' as const, dueDate: null, labelIds: [], activityLog: [], attachments: [] },
+			{ id: '3', text: 'B', description: '', completed: false, createdAt: '', priority: 'none' as const, dueDate: '2025-06-01', labelIds: [], activityLog: [], attachments: [] }
 		];
 		const sorted = sortTodosByDueDate(input);
 		expect(sorted[0].dueDate).toBe('2025-06-01');
@@ -395,5 +401,96 @@ describe('todo store', () => {
 		const result = get(filteredTodos);
 		expect(result).toHaveLength(1);
 		expect(result[0].text).toBe('Buy eggs');
+	});
+
+	it('addTodo includes empty attachments default', () => {
+		addTodo('Test todo');
+		const items = get(todos);
+		expect(items[0].attachments).toEqual([]);
+	});
+
+	it('legacy migration defaults missing attachments to empty array', async () => {
+		const legacyTodo = {
+			id: 'legacy-att',
+			text: 'Old todo no attachments',
+			completed: false,
+			createdAt: '2024-01-01T00:00:00.000Z',
+			priority: 'none',
+			dueDate: null,
+			description: '',
+			labelIds: []
+		};
+		localStorageMock.setItem(STORAGE_KEY, JSON.stringify([legacyTodo]));
+
+		vi.resetModules();
+		const mod2 = await import('./todos');
+		const items = get(mod2.todos);
+		expect(items).toHaveLength(1);
+		expect(items[0].attachments).toEqual([]);
+	});
+
+	it('addAttachment adds an attachment and logs activity', () => {
+		addTodo('Test todo');
+		const id = get(todos)[0].id;
+		const attachment = {
+			id: 'att-1',
+			name: 'photo.png',
+			mimeType: 'image/png',
+			dataUrl: 'data:image/png;base64,abc',
+			size: 1024,
+			createdAt: new Date().toISOString()
+		};
+		const ok = addAttachment(id, attachment);
+		expect(ok).toBe(true);
+		const item = get(todos)[0];
+		expect(item.attachments).toHaveLength(1);
+		expect(item.attachments[0].name).toBe('photo.png');
+		const lastEvent = item.activityLog[item.activityLog.length - 1];
+		expect(lastEvent.type).toBe('attachment_added');
+		expect(lastEvent.detail?.name).toBe('photo.png');
+	});
+
+	it('addAttachment returns false and reverts on quota exceeded', () => {
+		addTodo('Test todo');
+		const id = get(todos)[0].id;
+		const attachment = {
+			id: 'att-2',
+			name: 'bigfile.zip',
+			mimeType: 'application/zip',
+			dataUrl: 'data:application/zip;base64,abc',
+			size: 4000000,
+			createdAt: new Date().toISOString()
+		};
+
+		// Make setItem throw to simulate quota exceeded
+		vi.mocked(localStorageMock.setItem).mockImplementationOnce(() => {
+			throw new DOMException('QuotaExceededError');
+		});
+
+		const ok = addAttachment(id, attachment);
+		expect(ok).toBe(false);
+		expect(get(todos)[0].attachments).toHaveLength(0);
+	});
+
+	it('removeAttachment removes attachment and logs activity', () => {
+		addTodo('Test todo');
+		const id = get(todos)[0].id;
+		const attachment = {
+			id: 'att-3',
+			name: 'doc.pdf',
+			mimeType: 'application/pdf',
+			dataUrl: 'data:application/pdf;base64,abc',
+			size: 2048,
+			createdAt: new Date().toISOString()
+		};
+		addAttachment(id, attachment);
+		expect(get(todos)[0].attachments).toHaveLength(1);
+
+		removeAttachment(id, 'att-3');
+		const item = get(todos)[0];
+		expect(item.attachments).toHaveLength(0);
+		const lastEvent = item.activityLog[item.activityLog.length - 1];
+		expect(lastEvent.type).toBe('attachment_removed');
+		expect(lastEvent.detail?.name).toBe('doc.pdf');
 	});
 });

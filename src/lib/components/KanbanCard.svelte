@@ -14,6 +14,7 @@
 	import { truncateDescription } from '$lib/utils/markdown.js';
 	import { labels, getLabelsByIds } from '$lib/stores/labels.js';
 	import ActivityLog from './ActivityLog.svelte';
+	import CardAttachments from './CardAttachments.svelte';
 
 	let { todo, columnId, columnTitle, index }: { todo: Todo; columnId: string; columnTitle: string; index: number } = $props();
 
@@ -252,6 +253,7 @@
 		</div>
 		<LabelPicker todoId={todo.id} labelIds={todo.labelIds} />
 		<DescriptionEditor description={todo.description} todoId={todo.id} />
+		<CardAttachments todoId={todo.id} attachments={todo.attachments} />
 		<ActivityLog activityLog={todo.activityLog} />
 	{/if}
 </div>

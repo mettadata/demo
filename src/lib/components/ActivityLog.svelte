@@ -13,7 +13,9 @@
 		completed: '\u2713',
 		uncompleted: '\u21BA',
 		moved: '\u2192',
-		edited: '\u270E'
+		edited: '\u270E',
+		attachment_added: '\u{1F4CE}',
+		attachment_removed: '\u2716'
 	};
 </script>
 

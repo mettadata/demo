@@ -68,6 +68,14 @@ export function formatActivityDescription(type: string, detail?: Record<string, 
 					return `${field} updated`;
 			}
 		}
+		case 'attachment_added': {
+			const name = detail?.name ?? 'file';
+			return `Attached "${name}"`;
+		}
+		case 'attachment_removed': {
+			const name = detail?.name ?? 'file';
+			return `Removed attachment "${name}"`;
+		}
 		default:
 			return type;
 	}

@@ -4,12 +4,21 @@ import { labels, getLabelsByIds } from './labels.js';
 
 export type Priority = 'none' | 'low' | 'medium' | 'high';
 
-export type ActivityEventType = 'created' | 'edited' | 'moved' | 'completed' | 'uncompleted';
+export type ActivityEventType = 'created' | 'edited' | 'moved' | 'completed' | 'uncompleted' | 'attachment_added' | 'attachment_removed';
 
 export interface ActivityEvent {
 	type: ActivityEventType;
 	timestamp: string; // ISO 8601
 	detail?: Record<string, unknown>;
+}
+
+export interface Attachment {
+	id: string;
+	name: string;
+	mimeType: string;
+	dataUrl: string;
+	size: number;
+	createdAt: string;
 }
 
 export interface Todo {
@@ -22,6 +31,7 @@ export interface Todo {
 	dueDate: string | null;
 	labelIds: string[];
 	activityLog: ActivityEvent[];
+	attachments: Attachment[];
 }
 
 export type Filter = 'all' | 'active' | 'completed';
@@ -42,6 +52,7 @@ function loadTodos(): Todo[] {
 			dueDate: (t.dueDate as string | null) ?? null,
 			description: (t.description as string) ?? '',
 			labelIds: Array.isArray(t.labelIds) ? (t.labelIds as string[]) : [],
+			attachments: Array.isArray(t.attachments) ? (t.attachments as Attachment[]) : [],
 			activityLog: Array.isArray(t.activityLog)
 				? (t.activityLog as ActivityEvent[])
 				: [{ type: 'created' as const, timestamp: (t.createdAt as string) ?? new Date().toISOString() }]
@@ -61,6 +72,13 @@ function loadSortByDueDate(): boolean {
 	}
 }
 
+let _lastPersistError: string | null = null;
+export function getLastPersistError(): string | null {
+	const err = _lastPersistError;
+	_lastPersistError = null;
+	return err;
+}
+
 let _snapshotFn: (() => void) | null = null;
 export function registerSnapshotFn(fn: () => void): void {
 	_snapshotFn = fn;
@@ -75,7 +93,9 @@ todos.subscribe((value) => {
 	if (typeof window === 'undefined') return;
 	try {
 		localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
+		_lastPersistError = null;
 	} catch {
+		_lastPersistError = 'Storage quota exceeded. Attachment not saved.';
 		console.warn('Failed to persist todos to localStorage');
 	}
 });
@@ -151,6 +171,7 @@ export function addTodo(text: string): void {
 			priority: 'none',
 			dueDate: null,
 			labelIds: [],
+			attachments: [],
 			activityLog: [{ type: 'created', timestamp: now }]
 		}
 	]);
@@ -195,6 +216,58 @@ export function updateTodo(id: string, fields: Partial<Pick<Todo, 'priority' | '
 				...t,
 				...fields,
 				activityLog: events.length > 0 ? [...t.activityLog, ...events] : t.activityLog
+			};
+		})
+	);
+}
+
+export function addAttachment(todoId: string, attachment: Attachment): boolean {
+	snapshot();
+	const now = new Date().toISOString();
+	let previousTodos: Todo[] = [];
+	todos.subscribe((v) => (previousTodos = v))();
+
+	todos.update((current) =>
+		current.map((t) => {
+			if (t.id !== todoId) return t;
+			return {
+				...t,
+				attachments: [...t.attachments, attachment],
+				activityLog: [
+					...t.activityLog,
+					{ type: 'attachment_added' as const, timestamp: now, detail: { name: attachment.name } }
+				]
+			};
+		})
+	);
+
+	const err = getLastPersistError();
+	if (err) {
+		// Revert: quota exceeded
+		todos.set(previousTodos);
+		return false;
+	}
+	return true;
+}
+
+export function removeAttachment(todoId: string, attachmentId: string): void {
+	snapshot();
+	const now = new Date().toISOString();
+	todos.update((current) =>
+		current.map((t) => {
+			if (t.id !== todoId) return t;
+			const attachment = t.attachments.find((a) => a.id === attachmentId);
+			return {
+				...t,
+				attachments: t.attachments.filter((a) => a.id !== attachmentId),
+				activityLog: [
+					...t.activityLog,
+					{
+						type: 'attachment_removed' as const,
+						timestamp: now,
+						detail: { name: attachment?.name ?? 'unknown' }
+					}
+				]
 			};
 		})
 	);

@@ -56,18 +56,25 @@ todos.subscribe((value) => {
 });
 
 export const filter: Writable<Filter> = writable<Filter>('all');
+export const searchQuery: Writable<string> = writable<string>('');
 
 export const filteredTodos: Readable<Todo[]> = derived(
-	[todos, filter],
-	([$todos, $filter]) => {
+	[todos, filter, searchQuery],
+	([$todos, $filter, $searchQuery]) => {
+		let result = $todos;
 		switch ($filter) {
 			case 'active':
-				return $todos.filter((t) => !t.completed);
+				result = result.filter((t) => !t.completed);
+				break;
 			case 'completed':
-				return $todos.filter((t) => t.completed);
-			default:
-				return $todos;
+				result = result.filter((t) => t.completed);
+				break;
 		}
+		if ($searchQuery.trim() !== '') {
+			const query = $searchQuery.trim().toLowerCase();
+			result = result.filter((t) => t.text.toLowerCase().includes(query));
+		}
+		return result;
 	}
 );
 

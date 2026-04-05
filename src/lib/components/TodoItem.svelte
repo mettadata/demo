@@ -5,7 +5,7 @@
 	let { todo }: { todo: Todo } = $props();
 </script>
 
-<div class="flex items-center gap-3">
+<div class="flex items-center gap-3 dark:text-white">
 	<input
 		type="checkbox"
 		checked={todo.completed}

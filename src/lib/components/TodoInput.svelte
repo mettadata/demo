@@ -20,5 +20,5 @@
 	onkeydown={handleKeydown}
 	placeholder="What needs to be done?"
 	aria-label="New todo text"
-	class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+	class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:bg-gray-800 dark:border-gray-600 dark:text-white dark:placeholder-gray-400"
 />

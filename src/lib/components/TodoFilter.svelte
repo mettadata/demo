@@ -15,7 +15,7 @@
 			onclick={() => filter.set(option.value)}
 			class={$filter === option.value
 				? 'px-3 py-1 rounded bg-blue-500 text-white'
-				: 'px-3 py-1 rounded bg-gray-200 text-gray-700'}
+				: 'px-3 py-1 rounded bg-gray-200 text-gray-700 dark:bg-gray-700 dark:text-gray-300'}
 		>
 			{option.label}
 		</button>

@@ -86,7 +86,7 @@
 </script>
 
 <div
-	class="bg-gray-100 rounded-lg p-3 flex flex-col gap-2 min-h-[200px] w-72 flex-shrink-0 {dragOverCounter > 0 ? 'bg-blue-50 border-2 border-blue-300' : ''}"
+	class="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 flex flex-col gap-2 min-h-[200px] w-72 flex-shrink-0 {dragOverCounter > 0 ? 'bg-blue-50 border-2 border-blue-300 dark:bg-blue-900/30 dark:border-blue-500' : ''}"
 	role="list"
 	aria-label="{column.title} column"
 	aria-dropeffect={dragOverCounter > 0 ? 'move' : 'none'}
@@ -102,18 +102,18 @@
 				bind:value={editTitle}
 				onblur={confirmEdit}
 				onkeydown={handleEditKeydown}
-				class="font-semibold text-sm bg-white border border-gray-300 rounded px-1 py-0.5 flex-1 mr-2"
+				class="font-semibold text-sm bg-white border border-gray-300 rounded px-1 py-0.5 flex-1 mr-2 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
 			/>
 		{:else}
 			<h3
-				class="font-semibold text-sm text-gray-700 cursor-pointer"
+				class="font-semibold text-sm text-gray-700 dark:text-gray-200 cursor-pointer"
 				ondblclick={startEditing}
 			>
 				{column.title}
 			</h3>
 		{/if}
 		<div class="flex items-center gap-1">
-			<span class="text-xs text-gray-400 bg-gray-200 rounded-full px-2 py-0.5">
+			<span class="text-xs text-gray-400 bg-gray-200 rounded-full px-2 py-0.5 dark:text-gray-500 dark:bg-gray-700">
 				{column.cards.length}
 			</span>
 			<button

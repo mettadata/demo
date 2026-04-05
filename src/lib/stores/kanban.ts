@@ -1,7 +1,7 @@
-import { writable, derived } from 'svelte/store';
+import { writable, derived, get } from 'svelte/store';
 import type { Writable, Readable } from 'svelte/store';
 import { todos } from './todos.js';
-import type { Todo } from './todos.js';
+import type { Todo, ActivityEvent } from './todos.js';
 
 export interface KanbanColumn {
 	id: string;
@@ -217,6 +217,10 @@ export function moveColumn(columnId: string, newIndex: number): void {
 }
 
 export function moveCard(todoId: string, targetColumnId: string, targetIndex: number): void {
+	let fromColumnTitle = '';
+	let toColumnTitle = '';
+	let moved = false;
+
 	kanbanState.update((state) => {
 		const columns = state.columns.map((col) => ({ ...col, cardIds: [...col.cardIds] }));
 
@@ -238,6 +242,35 @@ export function moveCard(todoId: string, targetColumnId: string, targetIndex: nu
 		if (!targetCol) return state;
 
 		targetCol.cardIds.splice(targetIndex, 0, todoId);
+
+		// Track column titles for activity log (only for cross-column moves)
+		if (columns[sourceColIndex].id !== targetColumnId) {
+			fromColumnTitle = columns[sourceColIndex].title;
+			toColumnTitle = targetCol.title;
+			moved = true;
+		}
+
 		return { columns };
 	});
+
+	// Append move event to the todo's activity log (only if todo exists)
+	if (moved) {
+		const currentTodos = get(todos);
+		const todoExists = currentTodos.some((t) => t.id === todoId);
+		if (todoExists) {
+			const now = new Date().toISOString();
+			const event: ActivityEvent = {
+				type: 'moved',
+				timestamp: now,
+				detail: { fromColumn: fromColumnTitle, toColumn: toColumnTitle }
+			};
+			todos.update((current) =>
+				current.map((t) =>
+					t.id === todoId
+						? { ...t, activityLog: [...t.activityLog, event] }
+						: t
+				)
+			);
+		}
+	}
 }

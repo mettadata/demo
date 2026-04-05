@@ -4,6 +4,14 @@ import { labels, getLabelsByIds } from './labels.js';
 
 export type Priority = 'none' | 'low' | 'medium' | 'high';
 
+export type ActivityEventType = 'created' | 'edited' | 'moved' | 'completed' | 'uncompleted';
+
+export interface ActivityEvent {
+	type: ActivityEventType;
+	timestamp: string; // ISO 8601
+	detail?: Record<string, unknown>;
+}
+
 export interface Todo {
 	id: string;
 	text: string;
@@ -13,6 +21,7 @@ export interface Todo {
 	priority: Priority;
 	dueDate: string | null;
 	labelIds: string[];
+	activityLog: ActivityEvent[];
 }
 
 export type Filter = 'all' | 'active' | 'completed';
@@ -32,7 +41,10 @@ function loadTodos(): Todo[] {
 			priority: (t.priority as Priority) ?? 'none',
 			dueDate: (t.dueDate as string | null) ?? null,
 			description: (t.description as string) ?? '',
-			labelIds: Array.isArray(t.labelIds) ? (t.labelIds as string[]) : []
+			labelIds: Array.isArray(t.labelIds) ? (t.labelIds as string[]) : [],
+			activityLog: Array.isArray(t.activityLog)
+				? (t.activityLog as ActivityEvent[])
+				: [{ type: 'created' as const, timestamp: (t.createdAt as string) ?? new Date().toISOString() }]
 		})) as Todo[];
 	} catch {
 		return [];
@@ -127,6 +139,7 @@ export function addTodo(text: string): void {
 	const trimmed = text.trim();
 	if (trimmed === '') return;
 	snapshot();
+	const now = new Date().toISOString();
 	todos.update((current) => [
 		...current,
 		{
@@ -134,18 +147,28 @@ export function addTodo(text: string): void {
 			text: trimmed,
 			description: '',
 			completed: false,
-			createdAt: new Date().toISOString(),
+			createdAt: now,
 			priority: 'none',
 			dueDate: null,
-			labelIds: []
+			labelIds: [],
+			activityLog: [{ type: 'created', timestamp: now }]
 		}
 	]);
 }
 
 export function toggleTodo(id: string): void {
 	snapshot();
+	const now = new Date().toISOString();
 	todos.update((current) =>
-		current.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t))
+		current.map((t) => {
+			if (t.id !== id) return t;
+			const eventType: ActivityEventType = t.completed ? 'uncompleted' : 'completed';
+			return {
+				...t,
+				completed: !t.completed,
+				activityLog: [...t.activityLog, { type: eventType, timestamp: now }]
+			};
+		})
 	);
 }
 
@@ -156,7 +179,23 @@ export function removeTodo(id: string): void {
 
 export function updateTodo(id: string, fields: Partial<Pick<Todo, 'priority' | 'dueDate' | 'description' | 'labelIds'>>): void {
 	snapshot();
+	const now = new Date().toISOString();
 	todos.update((current) =>
-		current.map((t) => (t.id === id ? { ...t, ...fields } : t))
+		current.map((t) => {
+			if (t.id !== id) return t;
+			const events: ActivityEvent[] = [];
+			for (const key of Object.keys(fields) as Array<keyof typeof fields>) {
+				const from = t[key];
+				const to = fields[key];
+				if (JSON.stringify(from) !== JSON.stringify(to)) {
+					events.push({ type: 'edited', timestamp: now, detail: { field: key, from, to } });
+				}
+			}
+			return {
+				...t,
+				...fields,
+				activityLog: events.length > 0 ? [...t.activityLog, ...events] : t.activityLog
+			};
+		})
 	);
 }

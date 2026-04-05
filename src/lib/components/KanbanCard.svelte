@@ -1,13 +1,14 @@
 <script lang="ts">
 	import type { Todo } from '$lib/stores/todos.js';
 
-	let { todo, columnId, columnTitle }: { todo: Todo; columnId: string; columnTitle: string } = $props();
+	let { todo, columnId, columnTitle, index }: { todo: Todo; columnId: string; columnTitle: string; index: number } = $props();
 
 	let dragging = $state(false);
 
 	function handleDragStart(event: DragEvent) {
 		if (!event.dataTransfer) return;
 		event.dataTransfer.setData('text/plain', todo.id);
+		event.dataTransfer.setData('application/x-kanban-source', columnId);
 		event.dataTransfer.effectAllowed = 'move';
 		dragging = true;
 	}
@@ -25,7 +26,7 @@
 	aria-grabbed={dragging}
 	ondragstart={handleDragStart}
 	ondragend={handleDragEnd}
-	class="bg-white dark:bg-gray-700 p-3 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600 cursor-grab {todo.completed ? 'border-l-4 border-l-green-400' : ''} {dragging ? 'opacity-50' : ''}"
+	class="bg-white dark:bg-gray-700 p-3 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600 transition-all duration-200 {todo.completed ? 'border-l-4 border-l-green-400' : ''} {dragging ? 'opacity-50 scale-95 shadow-lg cursor-grabbing' : 'cursor-grab'}"
 >
 	<div class="flex items-center gap-2">
 		<span class="w-2 h-2 rounded-full flex-shrink-0 {todo.completed ? 'bg-green-400' : 'bg-blue-400'}"></span>

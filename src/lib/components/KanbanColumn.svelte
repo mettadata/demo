@@ -130,7 +130,7 @@
 		<p class="text-xs text-red-500 bg-red-50 rounded px-2 py-1">{deleteError}</p>
 	{/if}
 
-	{#each column.cards as todo (todo.id)}
-		<KanbanCard {todo} columnId={column.id} columnTitle={column.title} />
+	{#each column.cards as todo, i (todo.id)}
+		<KanbanCard {todo} columnId={column.id} columnTitle={column.title} index={i} />
 	{/each}
 </div>

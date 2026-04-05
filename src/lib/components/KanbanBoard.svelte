@@ -46,12 +46,12 @@
 				onkeydown={handleInputKeydown}
 				onblur={handleInputBlur}
 				placeholder="Column title..."
-				class="w-full border-2 border-dashed border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400"
+				class="w-full border-2 border-dashed border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-blue-400 dark:bg-gray-800 dark:border-gray-600 dark:text-white"
 			/>
 		{:else}
 			<button
 				onclick={handleAddClick}
-				class="w-full border-2 border-dashed border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-500 hover:border-gray-400 hover:text-gray-600 cursor-pointer"
+				class="w-full border-2 border-dashed border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-500 hover:border-gray-400 hover:text-gray-600 cursor-pointer dark:border-gray-600 dark:text-gray-400 dark:hover:border-gray-500 dark:hover:text-gray-300"
 			>
 				+ Add Column
 			</button>

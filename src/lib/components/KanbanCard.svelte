@@ -25,11 +25,11 @@
 	aria-grabbed={dragging}
 	ondragstart={handleDragStart}
 	ondragend={handleDragEnd}
-	class="bg-white p-3 rounded-lg shadow-sm border border-gray-200 cursor-grab {todo.completed ? 'border-l-4 border-l-green-400' : ''} {dragging ? 'opacity-50' : ''}"
+	class="bg-white dark:bg-gray-700 p-3 rounded-lg shadow-sm border border-gray-200 dark:border-gray-600 cursor-grab {todo.completed ? 'border-l-4 border-l-green-400' : ''} {dragging ? 'opacity-50' : ''}"
 >
 	<div class="flex items-center gap-2">
 		<span class="w-2 h-2 rounded-full flex-shrink-0 {todo.completed ? 'bg-green-400' : 'bg-blue-400'}"></span>
-		<span class={todo.completed ? 'line-through text-gray-400' : ''}>
+		<span class={todo.completed ? 'line-through text-gray-400' : 'dark:text-white'}>
 			{todo.text}
 		</span>
 	</div>

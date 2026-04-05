@@ -1,5 +1,6 @@
 <script>
 	import '../app.css';
+	import '$lib/stores/theme.js';
 
 	let { children } = $props();
 </script>

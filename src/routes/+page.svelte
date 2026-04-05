@@ -10,10 +10,12 @@
 	import SearchBar from '$lib/components/SearchBar.svelte';
 	import UndoRedoButtons from '$lib/components/UndoRedoButtons.svelte';
 	import LabelManager from '$lib/components/LabelManager.svelte';
+	import ShortcutsHelpModal from '$lib/components/ShortcutsHelpModal.svelte';
 	import { viewPreference } from '$lib/stores/kanban.js';
 	import { undo, redo } from '$lib/stores/history.js';
 
 	let showLabelManager = $state(false);
+	let showShortcutsHelp = $state(false);
 
 	onMount(() => {
 		function handleKeydown(e: KeyboardEvent) {
@@ -28,6 +30,9 @@
 			} else if (mod && e.key === 'z' && e.shiftKey) {
 				e.preventDefault();
 				redo();
+			} else if (e.key === '?' || (e.shiftKey && e.key === '/')) {
+				e.preventDefault();
+				showShortcutsHelp = true;
 			}
 		}
 
@@ -48,6 +53,15 @@
 			>
 				Labels
 			</button>
+			<button
+				class="p-2 rounded-lg text-gray-600 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors"
+				onclick={() => { showShortcutsHelp = true; }}
+				aria-label="Keyboard shortcuts help"
+			>
+				<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+					<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+				</svg>
+			</button>
 			<UndoRedoButtons />
 			<SortToggle />
 			<ThemeToggle />
@@ -65,3 +79,4 @@
 </div>
 </div>
 <LabelManager bind:open={showLabelManager} />
+<ShortcutsHelpModal bind:open={showShortcutsHelp} />

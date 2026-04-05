@@ -9,7 +9,10 @@
 	import PriorityBadge from './PriorityBadge.svelte';
 	import DueDateDisplay from './DueDateDisplay.svelte';
 	import DescriptionEditor from './DescriptionEditor.svelte';
+	import LabelChip from './LabelChip.svelte';
+	import LabelPicker from './LabelPicker.svelte';
 	import { truncateDescription } from '$lib/utils/markdown.js';
+	import { labels, getLabelsByIds } from '$lib/stores/labels.js';
 
 	let { todo, columnId, columnTitle, index }: { todo: Todo; columnId: string; columnTitle: string; index: number } = $props();
 
@@ -191,6 +194,13 @@
 			{todo.text}
 		</span>
 	</div>
+	{#if todo.labelIds.length > 0}
+		<div class="flex flex-wrap gap-1 mt-1">
+			{#each getLabelsByIds($labels, todo.labelIds) as label (label.id)}
+				<LabelChip {label} />
+			{/each}
+		</div>
+	{/if}
 	{#if todo.description}
 		<p class="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">{truncateDescription(todo.description)}</p>
 	{/if}
@@ -239,6 +249,7 @@
 				aria-label="Due date for {todo.text}"
 			/>
 		</div>
+		<LabelPicker todoId={todo.id} labelIds={todo.labelIds} />
 		<DescriptionEditor description={todo.description} todoId={todo.id} />
 	{/if}
 </div>

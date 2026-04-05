@@ -202,6 +202,13 @@ describe('todo store', () => {
 		expect(items[0].dueDate).toBeNull();
 	});
 
+	it('addTodo includes empty labelIds default', () => {
+		addTodo('Test todo');
+		const items = get(todos);
+		expect(items).toHaveLength(1);
+		expect(items[0].labelIds).toEqual([]);
+	});
+
 	it('addTodo includes empty description default', () => {
 		addTodo('Test todo');
 		const items = get(todos);
@@ -244,6 +251,25 @@ describe('todo store', () => {
 		expect(items[0].description).toBe('');
 	});
 
+	it('legacy migration defaults missing labelIds to empty array', async () => {
+		const legacyTodo = {
+			id: 'legacy-3',
+			text: 'Old todo no labels',
+			completed: false,
+			createdAt: '2024-01-01T00:00:00.000Z',
+			priority: 'none',
+			dueDate: null,
+			description: ''
+		};
+		localStorageMock.setItem(STORAGE_KEY, JSON.stringify([legacyTodo]));
+
+		vi.resetModules();
+		const mod2 = await import('./todos');
+		const items = get(mod2.todos);
+		expect(items).toHaveLength(1);
+		expect(items[0].labelIds).toEqual([]);
+	});
+
 	it('updateTodo sets priority', () => {
 		addTodo('Test todo');
 		const id = get(todos)[0].id;
@@ -265,6 +291,13 @@ describe('todo store', () => {
 		expect(get(todos)[0].description).toBe('**bold** description');
 	});
 
+	it('updateTodo sets labelIds', () => {
+		addTodo('Test todo');
+		const id = get(todos)[0].id;
+		updateTodo(id, { labelIds: ['label-1', 'label-2'] });
+		expect(get(todos)[0].labelIds).toEqual(['label-1', 'label-2']);
+	});
+
 	it('updateTodo clears dueDate', () => {
 		addTodo('Test todo');
 		const id = get(todos)[0].id;
@@ -276,9 +309,9 @@ describe('todo store', () => {
 
 	it('sortTodosByDueDate sorts ascending with nulls last', () => {
 		const input = [
-			{ id: '1', text: 'C', description: '', completed: false, createdAt: '', priority: 'none' as const, dueDate: '2025-12-01' },
-			{ id: '2', text: 'A', description: '', completed: false, createdAt: '', priority: 'none' as const, dueDate: null },
-			{ id: '3', text: 'B', description: '', completed: false, createdAt: '', priority: 'none' as const, dueDate: '2025-06-01' }
+			{ id: '1', text: 'C', description: '', completed: false, createdAt: '', priority: 'none' as const, dueDate: '2025-12-01', labelIds: [] },
+			{ id: '2', text: 'A', description: '', completed: false, createdAt: '', priority: 'none' as const, dueDate: null, labelIds: [] },
+			{ id: '3', text: 'B', description: '', completed: false, createdAt: '', priority: 'none' as const, dueDate: '2025-06-01', labelIds: [] }
 		];
 		const sorted = sortTodosByDueDate(input);
 		expect(sorted[0].dueDate).toBe('2025-06-01');

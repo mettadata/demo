@@ -4,6 +4,9 @@
 	import PriorityBadge from './PriorityBadge.svelte';
 	import DueDateDisplay from './DueDateDisplay.svelte';
 	import DescriptionEditor from './DescriptionEditor.svelte';
+	import LabelChip from './LabelChip.svelte';
+	import LabelPicker from './LabelPicker.svelte';
+	import { labels, getLabelsByIds } from '$lib/stores/labels.js';
 
 	let { todo }: { todo: Todo } = $props();
 </script>
@@ -19,6 +22,13 @@
 		<span class={todo.completed ? 'line-through text-gray-400 flex-1' : 'flex-1'}>{todo.text}</span>
 		<PriorityBadge priority={todo.priority} />
 		<DueDateDisplay dueDate={todo.dueDate} />
+		{#if todo.labelIds.length > 0}
+			<div class="flex flex-wrap gap-1">
+				{#each getLabelsByIds($labels, todo.labelIds) as label (label.id)}
+					<LabelChip {label} />
+				{/each}
+			</div>
+		{/if}
 		<button
 			onclick={() => removeTodo(todo.id)}
 			aria-label="Delete {todo.text}"
@@ -28,6 +38,7 @@
 		</button>
 	</div>
 	<div class="flex items-center gap-2 ml-7">
+		<LabelPicker todoId={todo.id} labelIds={todo.labelIds} />
 		<select
 			class="text-xs px-1 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white"
 			value={todo.priority}

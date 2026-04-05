@@ -6,6 +6,7 @@ export type Priority = 'none' | 'low' | 'medium' | 'high';
 export interface Todo {
 	id: string;
 	text: string;
+	description: string;
 	completed: boolean;
 	createdAt: string;
 	priority: Priority;
@@ -27,7 +28,8 @@ function loadTodos(): Todo[] {
 		return parsed.map((t: Record<string, unknown>) => ({
 			...t,
 			priority: (t.priority as Priority) ?? 'none',
-			dueDate: (t.dueDate as string | null) ?? null
+			dueDate: (t.dueDate as string | null) ?? null,
+			description: (t.description as string) ?? ''
 		})) as Todo[];
 	} catch {
 		return [];
@@ -72,7 +74,7 @@ export const filteredTodos: Readable<Todo[]> = derived(
 		}
 		if ($searchQuery.trim() !== '') {
 			const query = $searchQuery.trim().toLowerCase();
-			result = result.filter((t) => t.text.toLowerCase().includes(query));
+			result = result.filter((t) => t.text.toLowerCase().includes(query) || t.description.toLowerCase().includes(query));
 		}
 		return result;
 	}
@@ -114,6 +116,7 @@ export function addTodo(text: string): void {
 		{
 			id: crypto.randomUUID(),
 			text: trimmed,
+			description: '',
 			completed: false,
 			createdAt: new Date().toISOString(),
 			priority: 'none',
@@ -132,7 +135,7 @@ export function removeTodo(id: string): void {
 	todos.update((current) => current.filter((t) => t.id !== id));
 }
 
-export function updateTodo(id: string, fields: Partial<Pick<Todo, 'priority' | 'dueDate'>>): void {
+export function updateTodo(id: string, fields: Partial<Pick<Todo, 'priority' | 'dueDate' | 'description'>>): void {
 	todos.update((current) =>
 		current.map((t) => (t.id === id ? { ...t, ...fields } : t))
 	);

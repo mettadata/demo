@@ -8,6 +8,8 @@
 	import { get } from 'svelte/store';
 	import PriorityBadge from './PriorityBadge.svelte';
 	import DueDateDisplay from './DueDateDisplay.svelte';
+	import DescriptionEditor from './DescriptionEditor.svelte';
+	import { truncateDescription } from '$lib/utils/markdown.js';
 
 	let { todo, columnId, columnTitle, index }: { todo: Todo; columnId: string; columnTitle: string; index: number } = $props();
 
@@ -189,6 +191,9 @@
 			{todo.text}
 		</span>
 	</div>
+	{#if todo.description}
+		<p class="text-xs text-gray-500 dark:text-gray-400 mt-1 truncate">{truncateDescription(todo.description)}</p>
+	{/if}
 	{#if todo.priority !== 'none' || todo.dueDate !== null}
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
 		<!-- svelte-ignore a11y_no_static_element_interactions -->
@@ -234,5 +239,6 @@
 				aria-label="Due date for {todo.text}"
 			/>
 		</div>
+		<DescriptionEditor description={todo.description} todoId={todo.id} />
 	{/if}
 </div>

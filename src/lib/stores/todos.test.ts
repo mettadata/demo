@@ -202,6 +202,13 @@ describe('todo store', () => {
 		expect(items[0].dueDate).toBeNull();
 	});
 
+	it('addTodo includes empty description default', () => {
+		addTodo('Test todo');
+		const items = get(todos);
+		expect(items).toHaveLength(1);
+		expect(items[0].description).toBe('');
+	});
+
 	it('legacy migration defaults missing priority and dueDate', async () => {
 		const legacyTodo = {
 			id: 'legacy-1',
@@ -219,6 +226,24 @@ describe('todo store', () => {
 		expect(items[0].dueDate).toBeNull();
 	});
 
+	it('legacy migration defaults missing description to empty string', async () => {
+		const legacyTodo = {
+			id: 'legacy-2',
+			text: 'Old todo no desc',
+			completed: false,
+			createdAt: '2024-01-01T00:00:00.000Z',
+			priority: 'low',
+			dueDate: null
+		};
+		localStorageMock.setItem(STORAGE_KEY, JSON.stringify([legacyTodo]));
+
+		vi.resetModules();
+		const mod2 = await import('./todos');
+		const items = get(mod2.todos);
+		expect(items).toHaveLength(1);
+		expect(items[0].description).toBe('');
+	});
+
 	it('updateTodo sets priority', () => {
 		addTodo('Test todo');
 		const id = get(todos)[0].id;
@@ -233,6 +258,13 @@ describe('todo store', () => {
 		expect(get(todos)[0].dueDate).toBe('2025-06-15');
 	});
 
+	it('updateTodo sets description', () => {
+		addTodo('Test todo');
+		const id = get(todos)[0].id;
+		updateTodo(id, { description: '**bold** description' });
+		expect(get(todos)[0].description).toBe('**bold** description');
+	});
+
 	it('updateTodo clears dueDate', () => {
 		addTodo('Test todo');
 		const id = get(todos)[0].id;
@@ -244,9 +276,9 @@ describe('todo store', () => {
 
 	it('sortTodosByDueDate sorts ascending with nulls last', () => {
 		const input = [
-			{ id: '1', text: 'C', completed: false, createdAt: '', priority: 'none' as const, dueDate: '2025-12-01' },
-			{ id: '2', text: 'A', completed: false, createdAt: '', priority: 'none' as const, dueDate: null },
-			{ id: '3', text: 'B', completed: false, createdAt: '', priority: 'none' as const, dueDate: '2025-06-01' }
+			{ id: '1', text: 'C', description: '', completed: false, createdAt: '', priority: 'none' as const, dueDate: '2025-12-01' },
+			{ id: '2', text: 'A', description: '', completed: false, createdAt: '', priority: 'none' as const, dueDate: null },
+			{ id: '3', text: 'B', description: '', completed: false, createdAt: '', priority: 'none' as const, dueDate: '2025-06-01' }
 		];
 		const sorted = sortTodosByDueDate(input);
 		expect(sorted[0].dueDate).toBe('2025-06-01');
@@ -295,6 +327,18 @@ describe('todo store', () => {
 		expect(result).toHaveLength(2);
 		expect(result[0].text).toBe('Buy milk');
 		expect(result[1].text).toBe('Buy eggs');
+	});
+
+	it('searchQuery matches description text', () => {
+		addTodo('Buy milk');
+		addTodo('Walk the dog');
+		const id = get(todos)[1].id;
+		updateTodo(id, { description: 'Remember to bring treats' });
+
+		searchQuery.set('treats');
+		const result = get(filteredTodos);
+		expect(result).toHaveLength(1);
+		expect(result[0].text).toBe('Walk the dog');
 	});
 
 	it('searchQuery with empty string shows all todos', () => {

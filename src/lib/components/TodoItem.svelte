@@ -3,6 +3,7 @@
 	import type { Todo, Priority } from '$lib/stores/todos.js';
 	import PriorityBadge from './PriorityBadge.svelte';
 	import DueDateDisplay from './DueDateDisplay.svelte';
+	import DescriptionEditor from './DescriptionEditor.svelte';
 
 	let { todo }: { todo: Todo } = $props();
 </script>
@@ -45,5 +46,8 @@
 			onchange={(e) => updateTodo(todo.id, { dueDate: (e.currentTarget as HTMLInputElement).value || null })}
 			aria-label="Due date for {todo.text}"
 		/>
+	</div>
+	<div class="ml-7">
+		<DescriptionEditor description={todo.description} todoId={todo.id} />
 	</div>
 </div>

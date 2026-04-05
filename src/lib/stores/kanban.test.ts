@@ -222,4 +222,72 @@ describe('kanban store', () => {
 			expect.any(String)
 		);
 	});
+
+	describe('moveCard drop index edge cases', () => {
+		it('moves card to index 0 in empty column', () => {
+			kanbanState.update((s) => {
+				s.columns[0].cardIds = ['card-1'];
+				s.columns[1].cardIds = [];
+				return { columns: [...s.columns] };
+			});
+
+			const targetColId = get(kanbanState).columns[1].id;
+			moveCard('card-1', targetColId, 0);
+
+			const state = get(kanbanState);
+			expect(state.columns[0].cardIds).toEqual([]);
+			expect(state.columns[1].cardIds).toEqual(['card-1']);
+		});
+
+		it('same-column: [A, B, C], move A to index 2 → [B, C, A]', () => {
+			kanbanState.update((s) => {
+				s.columns[0].cardIds = ['card-a', 'card-b', 'card-c'];
+				return { columns: [...s.columns] };
+			});
+
+			const colId = get(kanbanState).columns[0].id;
+			moveCard('card-a', colId, 2);
+
+			expect(get(kanbanState).columns[0].cardIds).toEqual(['card-b', 'card-c', 'card-a']);
+		});
+
+		it('same-column: [A, B, C], move C to index 0 → [C, A, B]', () => {
+			kanbanState.update((s) => {
+				s.columns[0].cardIds = ['card-a', 'card-b', 'card-c'];
+				return { columns: [...s.columns] };
+			});
+
+			const colId = get(kanbanState).columns[0].id;
+			moveCard('card-c', colId, 0);
+
+			expect(get(kanbanState).columns[0].cardIds).toEqual(['card-c', 'card-a', 'card-b']);
+		});
+
+		it('same-column: [A, B, C], move B to index 1 → [A, B, C]', () => {
+			kanbanState.update((s) => {
+				s.columns[0].cardIds = ['card-a', 'card-b', 'card-c'];
+				return { columns: [...s.columns] };
+			});
+
+			const colId = get(kanbanState).columns[0].id;
+			moveCard('card-b', colId, 1);
+
+			expect(get(kanbanState).columns[0].cardIds).toEqual(['card-a', 'card-b', 'card-c']);
+		});
+
+		it('cross-column: move middle card from col-0 to col-1 at index 0', () => {
+			kanbanState.update((s) => {
+				s.columns[0].cardIds = ['card-a', 'card-b', 'card-c'];
+				s.columns[1].cardIds = ['card-d', 'card-e'];
+				return { columns: [...s.columns] };
+			});
+
+			const targetColId = get(kanbanState).columns[1].id;
+			moveCard('card-b', targetColId, 0);
+
+			const state = get(kanbanState);
+			expect(state.columns[0].cardIds).toEqual(['card-a', 'card-c']);
+			expect(state.columns[1].cardIds).toEqual(['card-b', 'card-d', 'card-e']);
+		});
+	});
 });

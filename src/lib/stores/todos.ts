@@ -1,5 +1,6 @@
 import { writable, derived } from 'svelte/store';
 import type { Writable, Readable } from 'svelte/store';
+import { labels, getLabelsByIds } from './labels.js';
 
 export type Priority = 'none' | 'low' | 'medium' | 'high';
 
@@ -11,6 +12,7 @@ export interface Todo {
 	createdAt: string;
 	priority: Priority;
 	dueDate: string | null;
+	labelIds: string[];
 }
 
 export type Filter = 'all' | 'active' | 'completed';
@@ -29,7 +31,8 @@ function loadTodos(): Todo[] {
 			...t,
 			priority: (t.priority as Priority) ?? 'none',
 			dueDate: (t.dueDate as string | null) ?? null,
-			description: (t.description as string) ?? ''
+			description: (t.description as string) ?? '',
+			labelIds: Array.isArray(t.labelIds) ? (t.labelIds as string[]) : []
 		})) as Todo[];
 	} catch {
 		return [];
@@ -69,8 +72,8 @@ export const filter: Writable<Filter> = writable<Filter>('all');
 export const searchQuery: Writable<string> = writable<string>('');
 
 export const filteredTodos: Readable<Todo[]> = derived(
-	[todos, filter, searchQuery],
-	([$todos, $filter, $searchQuery]) => {
+	[todos, filter, searchQuery, labels],
+	([$todos, $filter, $searchQuery, $labels]) => {
 		let result = $todos;
 		switch ($filter) {
 			case 'active':
@@ -82,7 +85,11 @@ export const filteredTodos: Readable<Todo[]> = derived(
 		}
 		if ($searchQuery.trim() !== '') {
 			const query = $searchQuery.trim().toLowerCase();
-			result = result.filter((t) => t.text.toLowerCase().includes(query) || t.description.toLowerCase().includes(query));
+			result = result.filter((t) =>
+				t.text.toLowerCase().includes(query) ||
+				t.description.toLowerCase().includes(query) ||
+				getLabelsByIds($labels, t.labelIds).some(l => l.name.toLowerCase().includes(query))
+			);
 		}
 		return result;
 	}
@@ -129,7 +136,8 @@ export function addTodo(text: string): void {
 			completed: false,
 			createdAt: new Date().toISOString(),
 			priority: 'none',
-			dueDate: null
+			dueDate: null,
+			labelIds: []
 		}
 	]);
 }
@@ -146,7 +154,7 @@ export function removeTodo(id: string): void {
 	todos.update((current) => current.filter((t) => t.id !== id));
 }
 
-export function updateTodo(id: string, fields: Partial<Pick<Todo, 'priority' | 'dueDate' | 'description'>>): void {
+export function updateTodo(id: string, fields: Partial<Pick<Todo, 'priority' | 'dueDate' | 'description' | 'labelIds'>>): void {
 	snapshot();
 	todos.update((current) =>
 		current.map((t) => (t.id === id ? { ...t, ...fields } : t))

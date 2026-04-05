@@ -9,8 +9,11 @@
 	import SortToggle from '$lib/components/SortToggle.svelte';
 	import SearchBar from '$lib/components/SearchBar.svelte';
 	import UndoRedoButtons from '$lib/components/UndoRedoButtons.svelte';
+	import LabelManager from '$lib/components/LabelManager.svelte';
 	import { viewPreference } from '$lib/stores/kanban.js';
 	import { undo, redo } from '$lib/stores/history.js';
+
+	let showLabelManager = $state(false);
 
 	onMount(() => {
 		function handleKeydown(e: KeyboardEvent) {
@@ -38,6 +41,13 @@
 	<div class="flex items-center justify-between">
 		<h1 class="text-3xl font-bold dark:text-white">Todos</h1>
 		<div class="flex items-center gap-2">
+			<button
+				class="text-sm px-3 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-600"
+				onclick={() => { showLabelManager = true; }}
+				aria-label="Manage labels"
+			>
+				Labels
+			</button>
 			<UndoRedoButtons />
 			<SortToggle />
 			<ThemeToggle />
@@ -54,3 +64,4 @@
 	{/if}
 </div>
 </div>
+<LabelManager bind:open={showLabelManager} />

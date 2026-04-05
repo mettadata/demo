@@ -6,6 +6,7 @@
 	import DescriptionEditor from './DescriptionEditor.svelte';
 	import LabelChip from './LabelChip.svelte';
 	import LabelPicker from './LabelPicker.svelte';
+	import ActivityLog from './ActivityLog.svelte';
 	import { labels, getLabelsByIds } from '$lib/stores/labels.js';
 
 	let { todo }: { todo: Todo } = $props();
@@ -60,5 +61,6 @@
 	</div>
 	<div class="ml-7">
 		<DescriptionEditor description={todo.description} todoId={todo.id} />
+		<ActivityLog activityLog={todo.activityLog} />
 	</div>
 </div>

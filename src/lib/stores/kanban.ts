@@ -1,0 +1,243 @@
+import { writable, derived } from 'svelte/store';
+import type { Writable, Readable } from 'svelte/store';
+import { todos } from './todos.js';
+import type { Todo } from './todos.js';
+
+export interface KanbanColumn {
+	id: string;
+	title: string;
+	cardIds: string[];
+}
+
+export interface KanbanState {
+	columns: KanbanColumn[];
+}
+
+export interface ResolvedColumn {
+	id: string;
+	title: string;
+	cards: Todo[];
+}
+
+export type ViewPreference = 'list' | 'kanban';
+
+export const KANBAN_STORAGE_KEY = 'kanban-state';
+export const VIEW_PREF_STORAGE_KEY = 'view-preference';
+
+const DEFAULT_COLUMNS: KanbanColumn[] = [
+	{ id: 'col-todo', title: 'To Do', cardIds: [] },
+	{ id: 'col-in-progress', title: 'In Progress', cardIds: [] },
+	{ id: 'col-done', title: 'Done', cardIds: [] }
+];
+
+function loadKanbanState(existingTodoIds: string[]): KanbanState {
+	if (typeof window === 'undefined') return { columns: structuredClone(DEFAULT_COLUMNS) };
+	try {
+		const raw = localStorage.getItem(KANBAN_STORAGE_KEY);
+		if (raw !== null) {
+			const parsed = JSON.parse(raw);
+			if (parsed && Array.isArray(parsed.columns)) {
+				return parsed as KanbanState;
+			}
+		}
+	} catch {
+		// fall through to default
+	}
+	const columns = structuredClone(DEFAULT_COLUMNS);
+	columns[0].cardIds = [...existingTodoIds];
+	return { columns };
+}
+
+function loadViewPreference(): ViewPreference {
+	if (typeof window === 'undefined') return 'list';
+	try {
+		const raw = localStorage.getItem(VIEW_PREF_STORAGE_KEY);
+		if (raw === 'list' || raw === 'kanban') return raw;
+	} catch {
+		// fall through
+	}
+	return 'list';
+}
+
+function getInitialTodoIds(): string[] {
+	if (typeof window === 'undefined') return [];
+	try {
+		const raw = localStorage.getItem('todos');
+		if (raw === null) return [];
+		const parsed = JSON.parse(raw);
+		if (!Array.isArray(parsed)) return [];
+		return parsed.map((t: Todo) => t.id);
+	} catch {
+		return [];
+	}
+}
+
+const initialTodoIds = getInitialTodoIds();
+
+export const kanbanState: Writable<KanbanState> = writable<KanbanState>(loadKanbanState(initialTodoIds));
+export const viewPreference: Writable<ViewPreference> = writable<ViewPreference>(loadViewPreference());
+
+// Persist kanbanState to localStorage
+kanbanState.subscribe((value) => {
+	if (typeof window === 'undefined') return;
+	try {
+		localStorage.setItem(KANBAN_STORAGE_KEY, JSON.stringify(value));
+	} catch {
+		console.warn('Failed to persist kanban state to localStorage');
+	}
+});
+
+// Persist viewPreference to localStorage
+viewPreference.subscribe((value) => {
+	if (typeof window === 'undefined') return;
+	try {
+		localStorage.setItem(VIEW_PREF_STORAGE_KEY, value);
+	} catch {
+		console.warn('Failed to persist view preference to localStorage');
+	}
+});
+
+// Derived store: resolve cardIds to full Todo objects
+export const kanbanBoard: Readable<ResolvedColumn[]> = derived(
+	[kanbanState, todos],
+	([$kanbanState, $todos]) => {
+		const todoMap = new Map<string, Todo>();
+		for (const todo of $todos) {
+			todoMap.set(todo.id, todo);
+		}
+		return $kanbanState.columns.map((col) => ({
+			id: col.id,
+			title: col.title,
+			cards: col.cardIds
+				.map((id) => todoMap.get(id))
+				.filter((t): t is Todo => t !== undefined)
+		}));
+	}
+);
+
+// Sync kanban columns with todo changes
+function syncWithTodos(currentTodos: Todo[]): void {
+	const todoIds = new Set(currentTodos.map((t) => t.id));
+
+	kanbanState.update((state) => {
+		const allCardIds = new Set<string>();
+		for (const col of state.columns) {
+			for (const id of col.cardIds) {
+				allCardIds.add(id);
+			}
+		}
+
+		// Find new todo IDs not in any column
+		const newIds = currentTodos
+			.map((t) => t.id)
+			.filter((id) => !allCardIds.has(id));
+
+		// Find orphaned IDs in columns but not in todos
+		const orphanedIds = new Set<string>();
+		for (const id of allCardIds) {
+			if (!todoIds.has(id)) {
+				orphanedIds.add(id);
+			}
+		}
+
+		if (newIds.length === 0 && orphanedIds.size === 0) {
+			return state;
+		}
+
+		const newColumns = state.columns.map((col, index) => ({
+			...col,
+			cardIds: [
+				...col.cardIds.filter((id) => !orphanedIds.has(id)),
+				...(index === 0 ? newIds : [])
+			]
+		}));
+
+		return { columns: newColumns };
+	});
+}
+
+todos.subscribe((currentTodos) => {
+	syncWithTodos(currentTodos);
+});
+
+// --- Mutation functions ---
+
+export function addColumn(title: string): void {
+	const trimmed = title.trim();
+	if (trimmed === '') return;
+	kanbanState.update((state) => ({
+		columns: [
+			...state.columns,
+			{ id: crypto.randomUUID(), title: trimmed, cardIds: [] }
+		]
+	}));
+}
+
+export function renameColumn(columnId: string, title: string): void {
+	const trimmed = title.trim();
+	if (trimmed === '') return;
+	kanbanState.update((state) => ({
+		columns: state.columns.map((col) =>
+			col.id === columnId ? { ...col, title: trimmed } : col
+		)
+	}));
+}
+
+export function deleteColumn(columnId: string): void {
+	kanbanState.update((state) => {
+		if (state.columns.length <= 1) {
+			throw new Error('Cannot delete the last column');
+		}
+		const colIndex = state.columns.findIndex((c) => c.id === columnId);
+		if (colIndex === -1) return state;
+
+		const deletedCol = state.columns[colIndex];
+		const remaining = state.columns.filter((c) => c.id !== columnId);
+
+		// Move cards from deleted column to first remaining column
+		remaining[0] = {
+			...remaining[0],
+			cardIds: [...remaining[0].cardIds, ...deletedCol.cardIds]
+		};
+
+		return { columns: remaining };
+	});
+}
+
+export function moveColumn(columnId: string, newIndex: number): void {
+	kanbanState.update((state) => {
+		const colIndex = state.columns.findIndex((c) => c.id === columnId);
+		if (colIndex === -1) return state;
+
+		const columns = [...state.columns];
+		const [removed] = columns.splice(colIndex, 1);
+		columns.splice(newIndex, 0, removed);
+		return { columns };
+	});
+}
+
+export function moveCard(todoId: string, targetColumnId: string, targetIndex: number): void {
+	kanbanState.update((state) => {
+		const columns = state.columns.map((col) => ({ ...col, cardIds: [...col.cardIds] }));
+
+		// Remove card from current column
+		let sourceColIndex = -1;
+		for (let i = 0; i < columns.length; i++) {
+			const cardIndex = columns[i].cardIds.indexOf(todoId);
+			if (cardIndex !== -1) {
+				sourceColIndex = i;
+				columns[i].cardIds.splice(cardIndex, 1);
+				break;
+			}
+		}
+
+		if (sourceColIndex === -1) return state;
+
+		// Insert into target column at target index
+		const targetCol = columns.find((c) => c.id === targetColumnId);
+		if (!targetCol) return state;
+
+		targetCol.cardIds.splice(targetIndex, 0, todoId);
+		return { columns };
+	});
+}

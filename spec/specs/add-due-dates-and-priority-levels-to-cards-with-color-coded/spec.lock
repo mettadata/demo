@@ -1,0 +1,62 @@
+version: 13
+hash: sha256:3483f7e5dae0
+updated: 2026-04-05T21:48:19.782Z
+requirements:
+  - id: priority-labels
+    hash: sha256:739bb9296c23
+    scenarios:
+      - card-with-high-priority
+      - card-with-no-priority
+  - id: due-date-display
+    hash: sha256:e52f8661c387
+    scenarios:
+      - overdue-card
+      - card-with-future-due-date
+  - id: priority-and-due-date-editing
+    hash: sha256:9a8cb3a8f943
+    scenarios:
+      - set-priority-on-existing-card
+      - set-due-date-on-card
+      - clear-due-date
+  - id: sort-by-due-date
+    hash: sha256:4e8d2bf7bc35
+    scenarios:
+      - toggle-sort-in-kanban-view
+      - sort-in-list-view
+  - id: dark-mode-support
+    hash: sha256:d8500d4fc003
+    scenarios:
+      - priority-badge-in-dark-mode
+  - id: accessibility
+    hash: sha256:f0b1003eed09
+    scenarios:
+      - keyboard-priority-selection
+  - id: priority-labels
+    hash: sha256:739bb9296c23
+    scenarios:
+      - card-with-high-priority
+      - card-with-no-priority
+  - id: due-date-display
+    hash: sha256:e52f8661c387
+    scenarios:
+      - overdue-card
+      - card-with-future-due-date
+  - id: priority-and-due-date-editing
+    hash: sha256:9a8cb3a8f943
+    scenarios:
+      - set-priority-on-existing-card
+      - set-due-date-on-card
+      - clear-due-date
+  - id: sort-by-due-date
+    hash: sha256:4e8d2bf7bc35
+    scenarios:
+      - toggle-sort-in-kanban-view
+      - sort-in-list-view
+  - id: dark-mode-support
+    hash: sha256:d8500d4fc003
+    scenarios:
+      - priority-badge-in-dark-mode
+  - id: accessibility
+    hash: sha256:f0b1003eed09
+    scenarios:
+      - keyboard-priority-selection

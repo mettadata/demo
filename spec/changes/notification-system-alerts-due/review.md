@@ -28,6 +28,24 @@ The notification system is well-structured with clear separation of concerns acr
 
 - **src/lib/stores/notifications.test.ts:101-116** -- The "push at capacity evicts oldest" test pushes 5 items sequentially, so the first element always has the earliest `createdAt`. This does not expose the Critical eviction bug above. A test should push items with out-of-order `createdAt` values and verify the one with the lowest `createdAt` is evicted regardless of array position.
 
+### Security Findings
+
+- **src/lib/stores/notifications.ts:22-26 -- Unvalidated object spread from BroadcastChannel (MAJOR).** The `push()` function spreads `...notification` into the record object. When called from the BroadcastChannel handler (line 73), the payload is an arbitrary object from another browsing context. The spread copies ALL enumerable own properties, including unexpected keys. A malicious same-origin script can set `id` and `createdAt` to chosen values (exploiting the fallback at lines 24-25), or inject extra properties that flow into Svelte component props. Recommend explicit property picking (allowlist `type`, `title`, `message` only) instead of spread.
+
+- **src/lib/stores/notifications.ts:70-79 -- No schema validation on notification-pushed payload (MAJOR).** The handler checks `msg.payload.id` exists but does not validate that `type` is one of the allowed `NotificationType` values, or that `title` and `message` are strings with bounded length. A malicious same-origin tab can push notifications with arbitrary type values and oversized strings causing layout breakage.
+
+- **src/lib/sync/broadcastSync.ts:171-173 -- Unvalidated todos array from BroadcastChannel replaces entire store (MAJOR).** The `todos-updated` handler only checks `Array.isArray(msg.payload)` before passing to `onTodos()`, which calls `todos.set(t)` and writes to localStorage. A malicious same-origin script can inject crafted todo objects. While Svelte escapes HTML in current templates, the data persists in localStorage. Any future `{@html}` usage would be immediately exploitable. Recommend Zod schema validation on inbound payloads.
+
+- **src/lib/components/Toast.svelte:52-53 -- XSS via notification content: SAFE.** The `{title}` and `{message}` values use Svelte's standard text interpolation which auto-escapes HTML entities. No `{@html}` is used anywhere in Toast.svelte or Toaster.svelte.
+
+- **src/lib/stores/todos.ts:64 -- Regex in parseMentions: SAFE.** The escape pattern correctly neutralizes all regex metacharacters. Lookbehind/lookahead are fixed-width, so catastrophic backtracking is not possible. No ReDoS risk.
+
+- **No secrets or credentials found** in any reviewed file.
+
+- **src/lib/stores/todos.ts:359,431 -- User-controlled text in notification messages without length limits (MINOR).** `todo?.text` and `commenterName` are unbounded user inputs. While Svelte escapes HTML, extremely long strings could cause toast layout overflow.
+
+- **src/lib/notifications/dueDateChecker.ts:6 -- Unbounded notifiedIds Set (MINOR memory leak).** The Set grows monotonically; IDs are never removed even when todos are deleted or completed.
+
 ### Suggestions (nice to have)
 
 - **src/lib/stores/notifications.ts:16** -- The exported `notifications` store is `Writable<Notification[]>`, meaning any consumer can call `.set()` or `.update()` directly, bypassing eviction logic and BroadcastChannel sync. Consider exporting a derived read-only store and keeping the writable private.

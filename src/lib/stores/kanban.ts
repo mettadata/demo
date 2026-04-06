@@ -257,6 +257,7 @@ export function applyTemplate(templateName: string): void {
 				description: '',
 				completed: false,
 				createdAt: now,
+				ownerId: '',
 				priority: 'none',
 				dueDate: null,
 				labelIds: [],

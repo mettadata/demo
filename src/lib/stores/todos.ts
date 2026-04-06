@@ -43,6 +43,7 @@ export interface Todo {
 	description: string;
 	completed: boolean;
 	createdAt: string;
+	ownerId: string;
 	priority: Priority;
 	dueDate: string | null;
 	labelIds: string[];
@@ -92,6 +93,7 @@ function loadTodos(): Todo[] {
 			priority: (t.priority as Priority) ?? 'none',
 			dueDate: (t.dueDate as string | null) ?? null,
 			description: (t.description as string) ?? '',
+			ownerId: (t.ownerId as string) ?? '',
 			labelIds: Array.isArray(t.labelIds) ? (t.labelIds as string[]) : [],
 			attachments: Array.isArray(t.attachments) ? (t.attachments as Attachment[]) : [],
 			comments: Array.isArray(t.comments) ? (t.comments as Comment[]) : [],
@@ -210,7 +212,7 @@ export const sortedFilteredTodos: Readable<Todo[]> = derived(
 	}
 );
 
-export function addTodo(text: string, actorId?: string): void {
+export function addTodo(text: string, actorId?: string, ownerId: string = ''): void {
 	const trimmed = text.trim();
 	if (trimmed === '') return;
 	snapshot();
@@ -224,6 +226,7 @@ export function addTodo(text: string, actorId?: string): void {
 			description: '',
 			completed: false,
 			createdAt: now,
+			ownerId,
 			priority: 'none',
 			dueDate: null,
 			labelIds: [],

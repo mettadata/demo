@@ -21,6 +21,19 @@ export interface Attachment {
 	createdAt: string;
 }
 
+export interface Reply {
+	id: string;
+	body: string;
+	createdAt: string;
+}
+
+export interface Comment {
+	id: string;
+	body: string;
+	createdAt: string;
+	replies: Reply[];
+}
+
 export interface Todo {
 	id: string;
 	text: string;
@@ -32,6 +45,7 @@ export interface Todo {
 	labelIds: string[];
 	activityLog: ActivityEvent[];
 	attachments: Attachment[];
+	comments: Comment[];
 }
 
 export type Filter = 'all' | 'active' | 'completed';
@@ -53,6 +67,7 @@ function loadTodos(): Todo[] {
 			description: (t.description as string) ?? '',
 			labelIds: Array.isArray(t.labelIds) ? (t.labelIds as string[]) : [],
 			attachments: Array.isArray(t.attachments) ? (t.attachments as Attachment[]) : [],
+			comments: Array.isArray(t.comments) ? (t.comments as Comment[]) : [],
 			activityLog: Array.isArray(t.activityLog)
 				? (t.activityLog as ActivityEvent[])
 				: [{ type: 'created' as const, timestamp: (t.createdAt as string) ?? new Date().toISOString() }]
@@ -172,6 +187,7 @@ export function addTodo(text: string): void {
 			dueDate: null,
 			labelIds: [],
 			attachments: [],
+			comments: [],
 			activityLog: [{ type: 'created', timestamp: now }]
 		}
 	]);
@@ -268,6 +284,115 @@ export function removeAttachment(todoId: string, attachmentId: string): void {
 						detail: { name: attachment?.name ?? 'unknown' }
 					}
 				]
+			};
+		})
+	);
+}
+
+export function addComment(todoId: string, body: string): void {
+	const trimmed = body.trim();
+	if (trimmed === '') return;
+	snapshot();
+	const now = new Date().toISOString();
+	todos.update((current) =>
+		current.map((t) => {
+			if (t.id !== todoId) return t;
+			const comment: Comment = {
+				id: crypto.randomUUID(),
+				body: trimmed,
+				createdAt: now,
+				replies: []
+			};
+			return { ...t, comments: [...t.comments, comment] };
+		})
+	);
+}
+
+export function editComment(todoId: string, commentId: string, body: string): void {
+	const trimmed = body.trim();
+	if (trimmed === '') return;
+	snapshot();
+	todos.update((current) =>
+		current.map((t) => {
+			if (t.id !== todoId) return t;
+			return {
+				...t,
+				comments: t.comments.map((c) =>
+					c.id === commentId ? { ...c, body: trimmed } : c
+				)
+			};
+		})
+	);
+}
+
+export function deleteComment(todoId: string, commentId: string): void {
+	snapshot();
+	todos.update((current) =>
+		current.map((t) => {
+			if (t.id !== todoId) return t;
+			return { ...t, comments: t.comments.filter((c) => c.id !== commentId) };
+		})
+	);
+}
+
+export function addReply(todoId: string, commentId: string, body: string): void {
+	const trimmed = body.trim();
+	if (trimmed === '') return;
+	snapshot();
+	const now = new Date().toISOString();
+	todos.update((current) =>
+		current.map((t) => {
+			if (t.id !== todoId) return t;
+			return {
+				...t,
+				comments: t.comments.map((c) => {
+					if (c.id !== commentId) return c;
+					const reply: Reply = {
+						id: crypto.randomUUID(),
+						body: trimmed,
+						createdAt: now
+					};
+					return { ...c, replies: [...c.replies, reply] };
+				})
+			};
+		})
+	);
+}
+
+export function editReply(todoId: string, commentId: string, replyId: string, body: string): void {
+	const trimmed = body.trim();
+	if (trimmed === '') return;
+	snapshot();
+	todos.update((current) =>
+		current.map((t) => {
+			if (t.id !== todoId) return t;
+			return {
+				...t,
+				comments: t.comments.map((c) => {
+					if (c.id !== commentId) return c;
+					return {
+						...c,
+						replies: c.replies.map((r) =>
+							r.id === replyId ? { ...r, body: trimmed } : r
+						)
+					};
+				})
+			};
+		})
+	);
+}
+
+export function deleteReply(todoId: string, commentId: string, replyId: string): void {
+	snapshot();
+	todos.update((current) =>
+		current.map((t) => {
+			if (t.id !== todoId) return t;
+			return {
+				...t,
+				comments: t.comments.map((c) => {
+					if (c.id !== commentId) return c;
+					return { ...c, replies: c.replies.filter((r) => r.id !== replyId) };
+				})
 			};
 		})
 	);

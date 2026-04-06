@@ -45,6 +45,12 @@ describe('todo store', () => {
 	let addAttachment: typeof import('./todos').addAttachment;
 	let removeAttachment: typeof import('./todos').removeAttachment;
 	let getLastPersistError: typeof import('./todos').getLastPersistError;
+	let addComment: typeof import('./todos').addComment;
+	let editComment: typeof import('./todos').editComment;
+	let deleteComment: typeof import('./todos').deleteComment;
+	let addReply: typeof import('./todos').addReply;
+	let editReply: typeof import('./todos').editReply;
+	let deleteReply: typeof import('./todos').deleteReply;
 	let STORAGE_KEY: string;
 	let SORT_STORAGE_KEY: string;
 
@@ -70,6 +76,12 @@ describe('todo store', () => {
 		addAttachment = mod.addAttachment;
 		removeAttachment = mod.removeAttachment;
 		getLastPersistError = mod.getLastPersistError;
+		addComment = mod.addComment;
+		editComment = mod.editComment;
+		deleteComment = mod.deleteComment;
+		addReply = mod.addReply;
+		editReply = mod.editReply;
+		deleteReply = mod.deleteReply;
 		STORAGE_KEY = mod.STORAGE_KEY;
 		SORT_STORAGE_KEY = mod.SORT_STORAGE_KEY;
 
@@ -315,9 +327,9 @@ describe('todo store', () => {
 
 	it('sortTodosByDueDate sorts ascending with nulls last', () => {
 		const input = [
-			{ id: '1', text: 'C', description: '', completed: false, createdAt: '', priority: 'none' as const, dueDate: '2025-12-01', labelIds: [], activityLog: [], attachments: [] },
-			{ id: '2', text: 'A', description: '', completed: false, createdAt: '', priority: 'none' as const, dueDate: null, labelIds: [], activityLog: [], attachments: [] },
-			{ id: '3', text: 'B', description: '', completed: false, createdAt: '', priority: 'none' as const, dueDate: '2025-06-01', labelIds: [], activityLog: [], attachments: [] }
+			{ id: '1', text: 'C', description: '', completed: false, createdAt: '', priority: 'none' as const, dueDate: '2025-12-01', labelIds: [], activityLog: [], attachments: [], comments: [] },
+			{ id: '2', text: 'A', description: '', completed: false, createdAt: '', priority: 'none' as const, dueDate: null, labelIds: [], activityLog: [], attachments: [], comments: [] },
+			{ id: '3', text: 'B', description: '', completed: false, createdAt: '', priority: 'none' as const, dueDate: '2025-06-01', labelIds: [], activityLog: [], attachments: [], comments: [] }
 		];
 		const sorted = sortTodosByDueDate(input);
 		expect(sorted[0].dueDate).toBe('2025-06-01');
@@ -492,5 +504,132 @@ describe('todo store', () => {
 		const lastEvent = item.activityLog[item.activityLog.length - 1];
 		expect(lastEvent.type).toBe('attachment_removed');
 		expect(lastEvent.detail?.name).toBe('doc.pdf');
+	});
+
+	it('addTodo includes empty comments default', () => {
+		addTodo('Test todo');
+		expect(get(todos)[0].comments).toEqual([]);
+	});
+
+	it('legacy migration defaults missing comments to empty array', async () => {
+		const legacyTodo = {
+			id: 'legacy-cmt',
+			text: 'Old todo no comments',
+			completed: false,
+			createdAt: '2024-01-01T00:00:00.000Z',
+			priority: 'none',
+			dueDate: null,
+			description: '',
+			labelIds: [],
+			attachments: []
+		};
+		localStorageMock.setItem(STORAGE_KEY, JSON.stringify([legacyTodo]));
+
+		vi.resetModules();
+		const mod2 = await import('./todos');
+		const items = get(mod2.todos);
+		expect(items).toHaveLength(1);
+		expect(items[0].comments).toEqual([]);
+	});
+
+	it('addComment adds a comment to a todo', () => {
+		addTodo('Test todo');
+		const id = get(todos)[0].id;
+		addComment(id, 'This is a comment');
+		const item = get(todos)[0];
+		expect(item.comments).toHaveLength(1);
+		expect(item.comments[0].body).toBe('This is a comment');
+		expect(item.comments[0].replies).toEqual([]);
+		expect(item.comments[0].id).toBeTruthy();
+		expect(item.comments[0].createdAt).toBeTruthy();
+	});
+
+	it('addComment trims whitespace and rejects empty', () => {
+		addTodo('Test todo');
+		const id = get(todos)[0].id;
+		addComment(id, '   ');
+		expect(get(todos)[0].comments).toHaveLength(0);
+
+		addComment(id, '  Hello  ');
+		expect(get(todos)[0].comments[0].body).toBe('Hello');
+	});
+
+	it('editComment updates the comment body', () => {
+		addTodo('Test todo');
+		const id = get(todos)[0].id;
+		addComment(id, 'Original');
+		const commentId = get(todos)[0].comments[0].id;
+		editComment(id, commentId, 'Updated');
+		expect(get(todos)[0].comments[0].body).toBe('Updated');
+	});
+
+	it('editComment rejects empty body', () => {
+		addTodo('Test todo');
+		const id = get(todos)[0].id;
+		addComment(id, 'Original');
+		const commentId = get(todos)[0].comments[0].id;
+		editComment(id, commentId, '   ');
+		expect(get(todos)[0].comments[0].body).toBe('Original');
+	});
+
+	it('deleteComment removes a comment', () => {
+		addTodo('Test todo');
+		const id = get(todos)[0].id;
+		addComment(id, 'First');
+		addComment(id, 'Second');
+		expect(get(todos)[0].comments).toHaveLength(2);
+
+		const commentId = get(todos)[0].comments[0].id;
+		deleteComment(id, commentId);
+		expect(get(todos)[0].comments).toHaveLength(1);
+		expect(get(todos)[0].comments[0].body).toBe('Second');
+	});
+
+	it('addReply adds a reply to a comment', () => {
+		addTodo('Test todo');
+		const id = get(todos)[0].id;
+		addComment(id, 'Parent comment');
+		const commentId = get(todos)[0].comments[0].id;
+		addReply(id, commentId, 'This is a reply');
+		const comment = get(todos)[0].comments[0];
+		expect(comment.replies).toHaveLength(1);
+		expect(comment.replies[0].body).toBe('This is a reply');
+		expect(comment.replies[0].id).toBeTruthy();
+		expect(comment.replies[0].createdAt).toBeTruthy();
+	});
+
+	it('addReply rejects empty body', () => {
+		addTodo('Test todo');
+		const id = get(todos)[0].id;
+		addComment(id, 'Parent');
+		const commentId = get(todos)[0].comments[0].id;
+		addReply(id, commentId, '  ');
+		expect(get(todos)[0].comments[0].replies).toHaveLength(0);
+	});
+
+	it('editReply updates the reply body', () => {
+		addTodo('Test todo');
+		const id = get(todos)[0].id;
+		addComment(id, 'Parent');
+		const commentId = get(todos)[0].comments[0].id;
+		addReply(id, commentId, 'Original reply');
+		const replyId = get(todos)[0].comments[0].replies[0].id;
+		editReply(id, commentId, replyId, 'Updated reply');
+		expect(get(todos)[0].comments[0].replies[0].body).toBe('Updated reply');
+	});
+
+	it('deleteReply removes a reply from a comment', () => {
+		addTodo('Test todo');
+		const id = get(todos)[0].id;
+		addComment(id, 'Parent');
+		const commentId = get(todos)[0].comments[0].id;
+		addReply(id, commentId, 'Reply 1');
+		addReply(id, commentId, 'Reply 2');
+		expect(get(todos)[0].comments[0].replies).toHaveLength(2);
+
+		const replyId = get(todos)[0].comments[0].replies[0].id;
+		deleteReply(id, commentId, replyId);
+		expect(get(todos)[0].comments[0].replies).toHaveLength(1);
+		expect(get(todos)[0].comments[0].replies[0].body).toBe('Reply 2');
 	});
 });

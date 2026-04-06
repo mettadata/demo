@@ -1,0 +1,62 @@
+version: 10
+hash: sha256:8f63395cad56
+updated: 2026-04-06T03:55:05.078Z
+requirements:
+  - id: board-stats-dashboard-component-exists
+    hash: sha256:205c8e7f9315
+    scenarios:
+      - component-file-is-present-and-importable
+  - id: dashboard-rendered-above-kanban-columns
+    hash: sha256:fb4e27f295d9
+    scenarios:
+      - dashboard-is-visible-in-kanban-view
+      - dashboard-is-absent-in-list-view
+  - id: column-task-counts-display
+    hash: sha256:0e237329596f
+    scenarios:
+      - counts-reflect-the-current-card-distribution
+      - column-with-zero-cards-shows-count-of-zero
+      - newly-added-column-appears-in-the-dashboard
+      - archived-cards-are-not-counted
+  - id: overall-completion-percentage
+    hash: sha256:bd5eb582bb78
+    scenarios:
+      - percentage-rounds-correctly-with-mixed-completed-todos
+      - all-todos-completed-shows-100
+      - no-todos-shows-0
+      - completing-a-todo-updates-the-percentage-live
+      - archived-todos-are-excluded-from-percentage-calculation
+  - id: overdue-item-count
+    hash: sha256:ace74353a457
+    scenarios:
+      - overdue-count-reflects-past-due-incomplete-todos
+      - due-today-is-not-overdue
+      - completed-past-due-todo-is-not-overdue
+      - archived-past-due-todo-is-not-overdue
+      - todo-with-null-duedate-is-not-overdue
+      - zero-overdue-items-displays-0
+      - resolving-an-overdue-item-decrements-the-live-count
+  - id: dashboard-reactivity
+    hash: sha256:f80fe5944115
+    scenarios:
+      - adding-a-new-todo-updates-column-count-and-total
+      - moving-a-card-between-columns-updates-both-column-counts
+  - id: empty-board-state
+    hash: sha256:7122bbc86302
+    scenarios:
+      - empty-board-renders-cleanly
+  - id: dark-mode-support
+    hash: sha256:ea8b47804b84
+    scenarios:
+      - dashboard-is-legible-in-dark-mode
+      - dashboard-is-legible-in-light-mode
+  - id: accessibility
+    hash: sha256:27c211e1b40b
+    scenarios:
+      - progress-bar-exposes-aria-attributes
+      - overdue-count-has-an-accessible-label
+      - column-count-entries-are-readable-by-assistive-technology
+  - id: no-store-mutations
+    hash: sha256:e65635d61498
+    scenarios:
+      - component-source-contains-no-mutation-imports

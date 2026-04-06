@@ -76,6 +76,10 @@ export function formatActivityDescription(type: string, detail?: Record<string, 
 			const name = detail?.name ?? 'file';
 			return `Removed attachment "${name}"`;
 		}
+		case 'archived':
+			return 'Archived';
+		case 'unarchived':
+			return 'Unarchived';
 		default:
 			return type;
 	}

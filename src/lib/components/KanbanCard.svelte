@@ -2,7 +2,7 @@
 	import { getContext } from 'svelte';
 	import type { Todo } from '$lib/stores/todos.js';
 	import type { Priority } from '$lib/stores/todos.js';
-	import { updateTodo } from '$lib/stores/todos.js';
+	import { updateTodo, archiveTodo, unarchiveTodo } from '$lib/stores/todos.js';
 	import { moveCard } from '$lib/stores/kanban.js';
 	import { kanbanBoard } from '$lib/stores/kanban.js';
 	import { get } from 'svelte/store';
@@ -193,9 +193,27 @@
 >
 	<div class="flex items-center gap-2">
 		<span class="w-2 h-2 rounded-full flex-shrink-0 {todo.completed ? 'bg-green-400' : 'bg-blue-400'}"></span>
-		<span class={todo.completed ? 'line-through text-gray-400' : 'dark:text-white'}>
+		<span class="flex-1 {todo.completed ? 'line-through text-gray-400' : 'dark:text-white'}">
 			{todo.text}
 		</span>
+		{#if todo.completed && !todo.archived}
+			<button
+				onclick={(e) => { e.stopPropagation(); archiveTodo(todo.id); }}
+				onpointerdown={(e) => e.stopPropagation()}
+				aria-label="Archive {todo.text}"
+				class="text-xs text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 px-1 flex-shrink-0"
+				title="Archive"
+			>&#x1F4E6;</button>
+		{/if}
+		{#if todo.archived}
+			<button
+				onclick={(e) => { e.stopPropagation(); unarchiveTodo(todo.id); }}
+				onpointerdown={(e) => e.stopPropagation()}
+				aria-label="Unarchive {todo.text}"
+				class="text-xs text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 px-1 flex-shrink-0"
+				title="Unarchive"
+			>&#x1F4E4;</button>
+		{/if}
 	</div>
 	{#if todo.labelIds.length > 0}
 		<div class="flex flex-wrap gap-1 mt-1">

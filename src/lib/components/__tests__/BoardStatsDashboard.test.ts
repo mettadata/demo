@@ -47,6 +47,7 @@ function makeTodo(overrides: Partial<Todo> = {}): Todo {
 		attachments: [],
 		comments: [],
 		archived: false,
+		ownerId: '',
 		activityLog: [{ type: 'created', timestamp: new Date().toISOString() }],
 		...overrides
 	};

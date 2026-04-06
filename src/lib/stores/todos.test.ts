@@ -358,9 +358,9 @@ describe('todo store', () => {
 
 	it('sortTodosByDueDate sorts ascending with nulls last', () => {
 		const input = [
-			{ id: '1', text: 'C', description: '', completed: false, createdAt: '', priority: 'none' as const, dueDate: '2025-12-01', labelIds: [], activityLog: [], attachments: [], comments: [], archived: false },
-			{ id: '2', text: 'A', description: '', completed: false, createdAt: '', priority: 'none' as const, dueDate: null, labelIds: [], activityLog: [], attachments: [], comments: [], archived: false },
-			{ id: '3', text: 'B', description: '', completed: false, createdAt: '', priority: 'none' as const, dueDate: '2025-06-01', labelIds: [], activityLog: [], attachments: [], comments: [], archived: false }
+			{ id: '1', text: 'C', description: '', completed: false, createdAt: '', priority: 'none' as const, dueDate: '2025-12-01', labelIds: [], activityLog: [], attachments: [], comments: [], archived: false, ownerId: '' },
+			{ id: '2', text: 'A', description: '', completed: false, createdAt: '', priority: 'none' as const, dueDate: null, labelIds: [], activityLog: [], attachments: [], comments: [], archived: false, ownerId: '' },
+			{ id: '3', text: 'B', description: '', completed: false, createdAt: '', priority: 'none' as const, dueDate: '2025-06-01', labelIds: [], activityLog: [], attachments: [], comments: [], archived: false, ownerId: '' }
 		];
 		const sorted = sortTodosByDueDate(input);
 		expect(sorted[0].dueDate).toBe('2025-06-01');
@@ -882,6 +882,7 @@ describe('todo store', () => {
 			attachments: [],
 			comments: [],
 			archived: false,
+			ownerId: '',
 			activityLog: [{ type: 'created', timestamp: new Date().toISOString() }]
 		}]);
 

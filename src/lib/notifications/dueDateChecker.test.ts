@@ -29,6 +29,7 @@ function makeTodo(overrides: Partial<Todo> = {}): Todo {
 		attachments: [],
 		comments: [],
 		archived: false,
+		ownerId: '',
 		...overrides
 	};
 }

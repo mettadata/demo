@@ -190,9 +190,9 @@ describe('board activity notifications', () => {
 		});
 
 		mockTodos = writable([
-			{ id: 'card-1', text: 'Fix login bug', description: '', completed: false, createdAt: '2026-01-01T00:00:00.000Z', priority: 'none' as const, dueDate: null, labelIds: [], attachments: [], comments: [], archived: false, activityLog: [] },
-			{ id: 'card-2', text: 'Add dark mode', description: '', completed: false, createdAt: '2026-01-01T00:00:00.000Z', priority: 'none' as const, dueDate: null, labelIds: [], attachments: [], comments: [], archived: false, activityLog: [] },
-			{ id: 'card-3', text: 'Write tests', description: '', completed: false, createdAt: '2026-01-01T00:00:00.000Z', priority: 'none' as const, dueDate: null, labelIds: [], attachments: [], comments: [], archived: false, activityLog: [] }
+			{ id: 'card-1', text: 'Fix login bug', description: '', completed: false, createdAt: '2026-01-01T00:00:00.000Z', priority: 'none' as const, dueDate: null, labelIds: [], attachments: [], comments: [], archived: false, ownerId: '', activityLog: [] },
+			{ id: 'card-2', text: 'Add dark mode', description: '', completed: false, createdAt: '2026-01-01T00:00:00.000Z', priority: 'none' as const, dueDate: null, labelIds: [], attachments: [], comments: [], archived: false, ownerId: '', activityLog: [] },
+			{ id: 'card-3', text: 'Write tests', description: '', completed: false, createdAt: '2026-01-01T00:00:00.000Z', priority: 'none' as const, dueDate: null, labelIds: [], attachments: [], comments: [], archived: false, ownerId: '', activityLog: [] }
 		] as import('../stores/todos.js').Todo[]);
 
 		_injectLazyDeps({

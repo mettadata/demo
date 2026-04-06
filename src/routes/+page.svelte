@@ -20,25 +20,14 @@
 	import { todos } from '$lib/stores/todos.js';
 	import { listenForRemoteUpdates } from '$lib/sync/broadcastSync.js';
 	import { self, updateSelfName, initPresence, destroyPresence } from '$lib/stores/collaborators.js';
+	import { initStores } from '$lib/stores/init.js';
+
+	let { data } = $props();
 
 	let showLabelManager = $state(false);
 	let showShortcutsHelp = $state(false);
-	let showNamePrompt = $state(false);
-	let nameInput = $state('');
 	let showNameEditor = $state(false);
 	let nameEditorInput = $state('');
-
-	function confirmName() {
-		const trimmed = nameInput.trim();
-		if (trimmed === '') return;
-		updateSelfName(trimmed);
-		showNamePrompt = false;
-	}
-
-	function dismissPrompt() {
-		updateSelfName('Anonymous');
-		showNamePrompt = false;
-	}
 
 	function saveName() {
 		const trimmed = nameEditorInput.trim();
@@ -52,10 +41,11 @@
 	}
 
 	onMount(() => {
-		// Check for first-visit name prompt
-		if (localStorage.getItem('user-name') === null) {
-			showNamePrompt = true;
-		}
+		// Initialize stores with authenticated userId (must be first)
+		initStores(data.user.id);
+
+		// Set collaborator display name to authenticated username
+		updateSelfName(data.user.username);
 
 		// Initialize presence heartbeats and expiry polling
 		initPresence();
@@ -171,30 +161,3 @@
 <LabelManager bind:open={showLabelManager} />
 <ShortcutsHelpModal bind:open={showShortcutsHelp} />
 <Toaster />
-
-{#if showNamePrompt}
-	<div
-		role="dialog"
-		aria-label="Set your display name"
-		aria-modal="false"
-		class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4 flex items-center gap-3 shadow-lg z-50"
-	>
-		<span class="text-sm dark:text-white">What should we call you?</span>
-		<input
-			type="text"
-			bind:value={nameInput}
-			aria-label="Display name"
-			placeholder="Enter your name..."
-			class="text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-700 dark:text-white flex-1 max-w-xs"
-			onkeydown={(e) => { if (e.key === 'Enter') confirmName(); }}
-		/>
-		<button
-			class="text-sm px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
-			onclick={confirmName}
-		>Confirm</button>
-		<button
-			class="text-sm px-3 py-1 bg-gray-200 dark:bg-gray-600 dark:text-white rounded hover:bg-gray-300 dark:hover:bg-gray-500"
-			onclick={dismissPrompt}
-		>Skip</button>
-	</div>
-{/if}

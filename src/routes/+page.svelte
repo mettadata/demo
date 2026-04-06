@@ -146,7 +146,7 @@
 			<ViewToggle />
 		</div>
 	</div>
-	<TodoInput />
+	<TodoInput userId={data.user.id} />
 	<SearchBar />
 	{#if $viewPreference === 'list'}
 		<TodoFilter />

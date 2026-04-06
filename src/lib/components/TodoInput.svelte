@@ -2,13 +2,14 @@
 	import { addTodo } from '$lib/stores/todos.js';
 	import { self } from '$lib/stores/collaborators.js';
 
+	let { userId = '' }: { userId?: string } = $props();
 	let text = $state('');
 
 	function handleKeydown(event: KeyboardEvent) {
 		if (event.key === 'Enter') {
 			const trimmed = text.trim();
 			if (trimmed !== '') {
-				addTodo(trimmed, $self.id);
+				addTodo(trimmed, $self.id, userId);
 				text = '';
 			}
 		}

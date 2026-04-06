@@ -24,5 +24,27 @@ Added an "Export" button to the kanban board view that downloads the entire boar
 
 ## Verification
 
-- TypeScript: `npx tsc --noEmit` passes with zero errors
-- Tests: All 223 tests pass (6 new + 217 existing)
+### Gate Results
+| Gate | Status |
+|------|--------|
+| Tests | PASS (223/223, 13 suites) |
+| TypeCheck | FAIL |
+
+**TypeCheck failure**: `src/lib/components/__tests__/ExportBoardButton.test.ts:53` -- `mockImplementation((blob: Blob) => string)` is incompatible with the inferred mock signature `() => string`. The mock `createObjectURLMock` was created via `vi.fn(() => 'blob:mock-url')` which infers zero parameters, but `mockImplementation` is later called with a `(blob: Blob)` callback. This is a test-only type error; runtime behavior is correct.
+
+### Intent Compliance
+- [x] Single "Export JSON" button triggers browser file download of board state as JSON
+- [x] Payload includes columns with id, title, and ordered cardIds
+- [x] Payload includes full Todo objects for non-archived cards in columns
+- [x] Payload includes only labels referenced by exported cards
+- [x] Payload includes metadata: exportedAt (ISO 8601) and version "1"
+- [x] Uses Blob + URL.createObjectURL + programmatic anchor-click pattern (no server request)
+- [x] Filename follows board-export-YYYY-MM-DD.json format
+- [x] New file: src/lib/components/ExportBoardButton.svelte (self-contained)
+- [x] Mounted in src/routes/+page.svelte, rendered only when viewPreference is kanban
+- [x] Dark mode: button uses dark: Tailwind variants consistent with existing toolbar buttons
+- [x] No new stores, no new routes, no server-side code
+
+### Verdict: FAIL
+
+The implementation is fully compliant with the intent spec. All 223 tests pass. However, the TypeCheck gate fails due to a type mismatch in the test file at line 53. The fix is trivial (add a type parameter to `vi.fn<(blob: Blob) => string>(() => 'blob:mock-url')`) but this verification report does not modify implementation code.

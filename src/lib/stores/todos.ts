@@ -1,6 +1,7 @@
-import { writable, derived } from 'svelte/store';
+import { writable, derived, get } from 'svelte/store';
 import type { Writable, Readable } from 'svelte/store';
 import { labels, getLabelsByIds } from './labels.js';
+import { broadcastTodos } from '../sync/broadcastSync.js';
 
 export type Priority = 'none' | 'low' | 'medium' | 'high';
 
@@ -201,6 +202,7 @@ export function addTodo(text: string, actorId?: string): void {
 			activityLog: [{ type: 'created', timestamp: now, ...(detail ? { detail } : {}) }]
 		}
 	]);
+	broadcastTodos(get(todos));
 }
 
 export function toggleTodo(id: string, actorId?: string): void {
@@ -218,11 +220,13 @@ export function toggleTodo(id: string, actorId?: string): void {
 			};
 		})
 	);
+	broadcastTodos(get(todos));
 }
 
 export function removeTodo(id: string, actorId?: string): void {
 	snapshot();
 	todos.update((current) => current.filter((t) => t.id !== id));
+	broadcastTodos(get(todos));
 }
 
 export function updateTodo(id: string, fields: Partial<Pick<Todo, 'priority' | 'dueDate' | 'description' | 'labelIds'>>, actorId?: string): void {
@@ -246,6 +250,7 @@ export function updateTodo(id: string, fields: Partial<Pick<Todo, 'priority' | '
 			};
 		})
 	);
+	broadcastTodos(get(todos));
 }
 
 export function addAttachment(todoId: string, attachment: Attachment, actorId?: string): boolean {
@@ -274,6 +279,7 @@ export function addAttachment(todoId: string, attachment: Attachment, actorId?: 
 		todos.set(previousTodos);
 		return false;
 	}
+	broadcastTodos(get(todos));
 	return true;
 }
 
@@ -298,6 +304,7 @@ export function removeAttachment(todoId: string, attachmentId: string, actorId?:
 			};
 		})
 	);
+	broadcastTodos(get(todos));
 }
 
 export function addComment(todoId: string, body: string, actorId?: string): void {
@@ -317,6 +324,7 @@ export function addComment(todoId: string, body: string, actorId?: string): void
 			return { ...t, comments: [...t.comments, comment] };
 		})
 	);
+	broadcastTodos(get(todos));
 }
 
 export function editComment(todoId: string, commentId: string, body: string, actorId?: string): void {
@@ -334,6 +342,7 @@ export function editComment(todoId: string, commentId: string, body: string, act
 			};
 		})
 	);
+	broadcastTodos(get(todos));
 }
 
 export function deleteComment(todoId: string, commentId: string, actorId?: string): void {
@@ -344,6 +353,7 @@ export function deleteComment(todoId: string, commentId: string, actorId?: strin
 			return { ...t, comments: t.comments.filter((c) => c.id !== commentId) };
 		})
 	);
+	broadcastTodos(get(todos));
 }
 
 export function addReply(todoId: string, commentId: string, body: string, actorId?: string): void {
@@ -368,6 +378,7 @@ export function addReply(todoId: string, commentId: string, body: string, actorI
 			};
 		})
 	);
+	broadcastTodos(get(todos));
 }
 
 export function editReply(todoId: string, commentId: string, replyId: string, body: string, actorId?: string): void {
@@ -391,6 +402,7 @@ export function editReply(todoId: string, commentId: string, replyId: string, bo
 			};
 		})
 	);
+	broadcastTodos(get(todos));
 }
 
 export function deleteReply(todoId: string, commentId: string, replyId: string, actorId?: string): void {
@@ -407,6 +419,7 @@ export function deleteReply(todoId: string, commentId: string, replyId: string, 
 			};
 		})
 	);
+	broadcastTodos(get(todos));
 }
 
 export function archiveTodo(id: string, actorId?: string): void {
@@ -423,6 +436,7 @@ export function archiveTodo(id: string, actorId?: string): void {
 			};
 		})
 	);
+	broadcastTodos(get(todos));
 }
 
 export function unarchiveTodo(id: string, actorId?: string): void {
@@ -439,4 +453,5 @@ export function unarchiveTodo(id: string, actorId?: string): void {
 			};
 		})
 	);
+	broadcastTodos(get(todos));
 }

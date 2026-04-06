@@ -1,5 +1,6 @@
 import { writable, get } from 'svelte/store';
 import type { Writable } from 'svelte/store';
+import { broadcastHeartbeat, listenForRemoteUpdates } from '../sync/broadcastSync.js';
 
 export interface Collaborator {
 	id: string;
@@ -64,25 +65,18 @@ export function updateSelfName(name: string): void {
 	self.update((s) => ({ ...s, name: trimmed }));
 }
 
-// Presence lifecycle — wired in a separate step (Batch 2)
+// Presence lifecycle
 let heartbeatInterval: ReturnType<typeof setInterval> | null = null;
 let expiryInterval: ReturnType<typeof setInterval> | null = null;
 let unsubscribeListener: (() => void) | null = null;
 
-export function _wirePresence(
-	broadcastHeartbeatFn: (c: { id: string; name: string; color: string }) => void,
-	listenFn: (
-		onTodos: (t: unknown[]) => void,
-		onKanban: (s: unknown) => void,
-		onHeartbeat: (p: { id: string; name: string; color: string; lastSeen: number }) => void
-	) => () => void
-): void {
+function initPresence(): void {
 	if (typeof window === 'undefined') return;
 
 	const sendHeartbeat = () => {
 		const s = get(self);
 		self.update((cur) => ({ ...cur, lastSeen: Date.now() }));
-		broadcastHeartbeatFn({ id: s.id, name: s.name, color: s.color });
+		broadcastHeartbeat({ id: s.id, name: s.name, color: s.color });
 	};
 
 	// Send initial heartbeat
@@ -98,7 +92,7 @@ export function _wirePresence(
 	}, 10_000);
 
 	// Listen for heartbeats from other tabs
-	unsubscribeListener = listenFn(
+	unsubscribeListener = listenForRemoteUpdates(
 		() => {}, // onTodos — no-op, handled in +page.svelte
 		() => {}, // onKanban — no-op, handled in +page.svelte
 		(payload) => {
@@ -123,6 +117,9 @@ export function _wirePresence(
 		}
 	);
 }
+
+// Initialize presence on module load (browser only)
+initPresence();
 
 export function destroyPresence(): void {
 	if (heartbeatInterval !== null) {

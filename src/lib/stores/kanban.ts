@@ -2,6 +2,7 @@ import { writable, derived, get } from 'svelte/store';
 import type { Writable, Readable } from 'svelte/store';
 import { todos } from './todos.js';
 import type { Todo, ActivityEvent } from './todos.js';
+import { broadcastKanban, broadcastTodos } from '../sync/broadcastSync.js';
 
 export interface KanbanColumn {
 	id: string;
@@ -253,6 +254,8 @@ export function applyTemplate(templateName: string): void {
 	// Set kanbanState FIRST so syncWithTodos finds all new IDs already in columns
 	kanbanState.set({ columns: newColumns });
 	todos.update(() => newTodos);
+	broadcastKanban(get(kanbanState));
+	broadcastTodos(get(todos));
 }
 
 // --- Mutation functions ---
@@ -266,6 +269,7 @@ export function addColumn(title: string): void {
 			{ id: crypto.randomUUID(), title: trimmed, cardIds: [] }
 		]
 	}));
+	broadcastKanban(get(kanbanState));
 }
 
 export function renameColumn(columnId: string, title: string): void {
@@ -276,6 +280,7 @@ export function renameColumn(columnId: string, title: string): void {
 			col.id === columnId ? { ...col, title: trimmed } : col
 		)
 	}));
+	broadcastKanban(get(kanbanState));
 }
 
 export function deleteColumn(columnId: string): void {
@@ -297,6 +302,7 @@ export function deleteColumn(columnId: string): void {
 
 		return { columns: remaining };
 	});
+	broadcastKanban(get(kanbanState));
 }
 
 export function moveColumn(columnId: string, newIndex: number): void {
@@ -309,9 +315,10 @@ export function moveColumn(columnId: string, newIndex: number): void {
 		columns.splice(newIndex, 0, removed);
 		return { columns };
 	});
+	broadcastKanban(get(kanbanState));
 }
 
-export function moveCard(todoId: string, targetColumnId: string, targetIndex: number): void {
+export function moveCard(todoId: string, targetColumnId: string, targetIndex: number, actorId?: string): void {
 	let fromColumnTitle = '';
 	let toColumnTitle = '';
 	let moved = false;
@@ -347,6 +354,7 @@ export function moveCard(todoId: string, targetColumnId: string, targetIndex: nu
 
 		return { columns };
 	});
+	broadcastKanban(get(kanbanState));
 
 	// Append move event to the todo's activity log (only if todo exists)
 	if (moved) {
@@ -357,7 +365,7 @@ export function moveCard(todoId: string, targetColumnId: string, targetIndex: nu
 			const event: ActivityEvent = {
 				type: 'moved',
 				timestamp: now,
-				detail: { fromColumn: fromColumnTitle, toColumn: toColumnTitle }
+				detail: { fromColumn: fromColumnTitle, toColumn: toColumnTitle, ...(actorId ? { actorId } : {}) }
 			};
 			todos.update((current) =>
 				current.map((t) =>
@@ -366,6 +374,7 @@ export function moveCard(todoId: string, targetColumnId: string, targetIndex: nu
 						: t
 				)
 			);
+			broadcastTodos(get(todos));
 		}
 	}
 }

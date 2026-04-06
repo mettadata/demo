@@ -1,0 +1,41 @@
+version: 8
+hash: sha256:984b522eb5f5
+updated: 2026-04-06T07:18:07.054Z
+requirements:
+  - id: user-registration
+    hash: sha256:634afe46d050
+    scenarios:
+      - successful-registration
+      - duplicate-username-rejected
+      - short-password-rejected
+      - empty-username-rejected
+  - id: user-login
+    hash: sha256:4d1b702c6aa6
+    scenarios:
+      - successful-login
+      - wrong-password-rejected
+      - unknown-username-rejected
+  - id: user-logout
+    hash: sha256:38db87b98dca
+    scenarios:
+      - successful-logout
+      - logout-invalidates-session
+  - id: session-enforcement
+    hash: sha256:058fc874a3f7
+    scenarios:
+      - authenticated-request-passes-through
+      - unauthenticated-request-redirected
+      - invalid-session-id-redirected
+      - public-routes-not-blocked
+  - id: per-user-todo-isolation
+    hash: sha256:e8f1c9ad956b
+    scenarios:
+      - user-sees-only-own-todos
+      - new-todo-stored-under-correct-user
+      - empty-store-for-new-user
+  - id: password-hashing
+    hash: sha256:c81232af4ce3
+    scenarios:
+      - stored-password-is-hashed
+      - login-uses-bcrypt-compare
+      - incorrect-password-fails-bcrypt-compare

@@ -57,6 +57,16 @@ export type Filter = 'all' | 'active' | 'completed' | 'archived';
 export const STORAGE_KEY = 'todos';
 export const SORT_STORAGE_KEY = 'sort-by-due-date';
 
+let currentUserId = '';
+
+function todosKey(): string {
+	return currentUserId ? `todos_${currentUserId}` : STORAGE_KEY;
+}
+
+function sortKey(): string {
+	return currentUserId ? `sort-by-due-date_${currentUserId}` : SORT_STORAGE_KEY;
+}
+
 export function parseMentions(body: string, collaboratorNames: string[]): string[] {
 	if (!body || collaboratorNames.length === 0) return [];
 	const matched = new Set<string>();
@@ -73,7 +83,7 @@ export function parseMentions(body: string, collaboratorNames: string[]): string
 function loadTodos(): Todo[] {
 	if (typeof window === 'undefined') return [];
 	try {
-		const raw = localStorage.getItem(STORAGE_KEY);
+		const raw = localStorage.getItem(todosKey());
 		if (raw === null) return [];
 		const parsed = JSON.parse(raw);
 		if (!Array.isArray(parsed)) return [];
@@ -98,7 +108,7 @@ function loadTodos(): Todo[] {
 function loadSortByDueDate(): boolean {
 	if (typeof window === 'undefined') return false;
 	try {
-		const raw = localStorage.getItem(SORT_STORAGE_KEY);
+		const raw = localStorage.getItem(sortKey());
 		return raw === 'true';
 	} catch {
 		return false;
@@ -125,7 +135,7 @@ export const todos: Writable<Todo[]> = writable<Todo[]>(loadTodos());
 todos.subscribe((value) => {
 	if (typeof window === 'undefined') return;
 	try {
-		localStorage.setItem(STORAGE_KEY, JSON.stringify(value));
+		localStorage.setItem(todosKey(), JSON.stringify(value));
 		_lastPersistError = null;
 	} catch {
 		_lastPersistError = 'Storage quota exceeded. Attachment not saved.';
@@ -171,11 +181,17 @@ export const sortByDueDate: Writable<boolean> = writable<boolean>(loadSortByDueD
 sortByDueDate.subscribe((value) => {
 	if (typeof window === 'undefined') return;
 	try {
-		localStorage.setItem(SORT_STORAGE_KEY, String(value));
+		localStorage.setItem(sortKey(), String(value));
 	} catch {
 		console.warn('Failed to persist sort preference to localStorage');
 	}
 });
+
+export function initTodos(userId: string): void {
+	currentUserId = userId;
+	todos.set(loadTodos());
+	sortByDueDate.set(loadSortByDueDate());
+}
 
 export function sortTodosByDueDate(todos: Todo[]): Todo[] {
 	return [...todos].sort((a, b) => {

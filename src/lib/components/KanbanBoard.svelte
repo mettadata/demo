@@ -4,6 +4,7 @@
 	import { get } from 'svelte/store';
 	import KanbanColumn from './KanbanColumn.svelte';
 	import BoardTemplateSelector from './BoardTemplateSelector.svelte';
+	import { self, activeCollaborators, getInitials } from '$lib/stores/collaborators.js';
 
 	let showInput = $state(false);
 	let newColumnTitle = $state('');
@@ -132,6 +133,24 @@
 </script>
 
 <div aria-live="polite" class="sr-only">{announceText}</div>
+
+<div class="flex items-center gap-2 mb-2" aria-label="Active collaborators">
+	<span class="text-xs text-gray-500 dark:text-gray-400 mr-1">Here:</span>
+	<span
+		class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white ring-2 ring-white dark:ring-gray-900 flex-shrink-0"
+		style="background-color: {$self.color}"
+		aria-label={$self.name}
+		title="{$self.name} (you)"
+	>{getInitials($self.name)}</span>
+	{#each $activeCollaborators as collaborator (collaborator.id)}
+		<span
+			class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+			style="background-color: {collaborator.color}"
+			aria-label={collaborator.name}
+			title={collaborator.name}
+		>{getInitials(collaborator.name)}</span>
+	{/each}
+</div>
 
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div class="flex gap-4 overflow-x-auto pb-4 min-h-[300px]" onkeydown={handleBoardKeydown}>

@@ -13,6 +13,7 @@
 	import LabelPicker from './LabelPicker.svelte';
 	import { truncateDescription } from '$lib/utils/markdown.js';
 	import { labels, getLabelsByIds } from '$lib/stores/labels.js';
+	import { self, activeCollaborators, getInitials } from '$lib/stores/collaborators.js';
 	import ActivityLog from './ActivityLog.svelte';
 	import CardAttachments from './CardAttachments.svelte';
 	import CardComments from './CardComments.svelte';
@@ -21,6 +22,29 @@
 
 	let dragging = $state(false);
 	let showEdit = $state(false);
+
+	let lastActorAvatar = $derived.by(() => {
+		let bestEvent: { actorId: string; timestamp: string } | null = null;
+		for (const event of todo.activityLog) {
+			const actorId = (event.detail as Record<string, unknown> | undefined)?.actorId;
+			if (typeof actorId === 'string' && actorId !== '') {
+				if (!bestEvent || event.timestamp > bestEvent.timestamp) {
+					bestEvent = { actorId, timestamp: event.timestamp };
+				}
+			}
+		}
+		if (!bestEvent) return null;
+
+		const aid = bestEvent.actorId;
+		if (aid === $self.id) {
+			return { initials: getInitials($self.name), color: $self.color, name: $self.name };
+		}
+		const remote = $activeCollaborators.find((c) => c.id === aid);
+		if (remote) {
+			return { initials: getInitials(remote.name), color: remote.color, name: remote.name };
+		}
+		return null;
+	});
 
 	const keyboardDrag = getContext<{
 		state: {
@@ -196,6 +220,14 @@
 		<span class="flex-1 {todo.completed ? 'line-through text-gray-400' : 'dark:text-white'}">
 			{todo.text}
 		</span>
+		{#if lastActorAvatar}
+			<span
+				class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+				style="background-color: {lastActorAvatar.color}"
+				aria-label={lastActorAvatar.name}
+				title={lastActorAvatar.name}
+			>{lastActorAvatar.initials}</span>
+		{/if}
 		{#if todo.completed && !todo.archived}
 			<button
 				onclick={(e) => { e.stopPropagation(); archiveTodo(todo.id); }}

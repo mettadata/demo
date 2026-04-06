@@ -3,7 +3,6 @@ import type { Writable } from 'svelte/store';
 import type { Todo } from '../stores/todos.js';
 import type { KanbanState } from '../stores/kanban.js';
 import type { Notification } from '../stores/notifications.js';
-
 export interface HeartbeatPayload {
 	id: string;
 	name: string;
@@ -33,12 +32,13 @@ if (typeof window !== 'undefined') {
 	}
 }
 
-// Lazy references to break circular-import initialization.
-// Resolved on first access inside function bodies — never at module init time.
+// Dependencies resolved eagerly in listenForRemoteUpdates (called in onMount,
+// browser-only, after all modules have initialized). This avoids the async race
+// condition of the previous ensureLazyImports() approach while still preventing
+// circular initialization errors at module load time.
 let _kanbanState: Writable<KanbanState> | null = null;
 let _todos: Writable<Todo[]> | null = null;
 let _push: ((n: Omit<Notification, 'id' | 'createdAt'>, _fromChannel?: boolean) => string) | null = null;
-let _lazyResolved = false;
 
 export function _injectLazyDeps(deps: {
 	kanbanState: Writable<KanbanState>;
@@ -48,20 +48,6 @@ export function _injectLazyDeps(deps: {
 	_kanbanState = deps.kanbanState;
 	_todos = deps.todos;
 	_push = deps.push;
-	_lazyResolved = true;
-}
-
-async function ensureLazyImports(): Promise<void> {
-	if (_lazyResolved) return;
-	_lazyResolved = true;
-	const [kanbanMod, todosMod, notifMod] = await Promise.all([
-		import('../stores/kanban.js'),
-		import('../stores/todos.js'),
-		import('../stores/notifications.js')
-	]);
-	_kanbanState = kanbanMod.kanbanState;
-	_todos = todosMod.todos;
-	_push = notifMod.push;
 }
 
 export function broadcastTodos(todos: Todo[]): void {
@@ -159,8 +145,21 @@ export function listenForRemoteUpdates(
 ): () => void {
 	if (!channel) return () => {};
 
-	// Kick off lazy import resolution immediately so deps are ready when messages arrive
-	ensureLazyImports();
+	// Eagerly resolve all dependencies. listenForRemoteUpdates is called in
+	// onMount (browser-only, post-init) so all modules are already loaded and
+	// these dynamic imports resolve on the next microtask — well before any
+	// real BroadcastChannel message can arrive.
+	if (!_kanbanState || !_todos || !_push) {
+		Promise.all([
+			import('../stores/kanban.js'),
+			import('../stores/todos.js'),
+			import('../stores/notifications.js')
+		]).then(([kanbanMod, todosMod, notifMod]) => {
+			_kanbanState = kanbanMod.kanbanState;
+			_todos = todosMod.todos;
+			_push = notifMod.push;
+		});
+	}
 
 	function handler(event: MessageEvent): void {
 		try {
@@ -177,7 +176,9 @@ export function listenForRemoteUpdates(
 					// Snapshot local state before applying incoming update
 					const previous = _kanbanState ? get(_kanbanState) : null;
 					onKanban(msg.payload);
-					// Generate activity notifications for detected changes
+					// Generate activity notifications for detected changes.
+					// _push may be null in the extremely unlikely race where a message
+					// arrives before the dynamic import of notifications.ts resolves.
 					if (previous && _todos && _push) {
 						const todoMap = new Map(get(_todos).map((t) => [t.id, t.text]));
 						const changes = diffKanbanStates(previous, msg.payload, todoMap);

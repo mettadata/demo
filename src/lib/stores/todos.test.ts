@@ -939,6 +939,7 @@ describe('mention integration (addComment / addReply)', () => {
 	let addComment: typeof import('./todos').addComment;
 	let addReply: typeof import('./todos').addReply;
 	let editComment: typeof import('./todos').editComment;
+	let editReply: typeof import('./todos').editReply;
 
 	beforeEach(async () => {
 		vi.resetModules();
@@ -959,6 +960,7 @@ describe('mention integration (addComment / addReply)', () => {
 		addComment = mod.addComment;
 		addReply = mod.addReply;
 		editComment = mod.editComment;
+		editReply = mod.editReply;
 
 		todos.set([]);
 	});
@@ -1007,6 +1009,18 @@ describe('mention integration (addComment / addReply)', () => {
 		const commentId = get(todos)[0].comments[0].id;
 		mockPush.mockClear();
 		editComment(todoId, commentId, '@Alice updated comment');
+		expect(mockPush).not.toHaveBeenCalled();
+	});
+
+	it('editReply does not trigger mention notification', () => {
+		addTodo('Fix login bug');
+		const todoId = get(todos)[0].id;
+		addComment(todoId, 'Parent comment');
+		const commentId = get(todos)[0].comments[0].id;
+		addReply(todoId, commentId, 'Original reply');
+		const replyId = get(todos)[0].comments[0].replies[0].id;
+		mockPush.mockClear();
+		editReply(todoId, commentId, replyId, '@Alice updated reply');
 		expect(mockPush).not.toHaveBeenCalled();
 	});
 });

@@ -178,11 +178,12 @@ export const sortedFilteredTodos: Readable<Todo[]> = derived(
 	}
 );
 
-export function addTodo(text: string): void {
+export function addTodo(text: string, actorId?: string): void {
 	const trimmed = text.trim();
 	if (trimmed === '') return;
 	snapshot();
 	const now = new Date().toISOString();
+	const detail = actorId ? { actorId } : undefined;
 	todos.update((current) => [
 		...current,
 		{
@@ -197,33 +198,34 @@ export function addTodo(text: string): void {
 			attachments: [],
 			comments: [],
 			archived: false,
-			activityLog: [{ type: 'created', timestamp: now }]
+			activityLog: [{ type: 'created', timestamp: now, ...(detail ? { detail } : {}) }]
 		}
 	]);
 }
 
-export function toggleTodo(id: string): void {
+export function toggleTodo(id: string, actorId?: string): void {
 	snapshot();
 	const now = new Date().toISOString();
 	todos.update((current) =>
 		current.map((t) => {
 			if (t.id !== id) return t;
 			const eventType: ActivityEventType = t.completed ? 'uncompleted' : 'completed';
+			const detail = actorId ? { actorId } : undefined;
 			return {
 				...t,
 				completed: !t.completed,
-				activityLog: [...t.activityLog, { type: eventType, timestamp: now }]
+				activityLog: [...t.activityLog, { type: eventType, timestamp: now, ...(detail ? { detail } : {}) }]
 			};
 		})
 	);
 }
 
-export function removeTodo(id: string): void {
+export function removeTodo(id: string, actorId?: string): void {
 	snapshot();
 	todos.update((current) => current.filter((t) => t.id !== id));
 }
 
-export function updateTodo(id: string, fields: Partial<Pick<Todo, 'priority' | 'dueDate' | 'description' | 'labelIds'>>): void {
+export function updateTodo(id: string, fields: Partial<Pick<Todo, 'priority' | 'dueDate' | 'description' | 'labelIds'>>, actorId?: string): void {
 	snapshot();
 	const now = new Date().toISOString();
 	todos.update((current) =>
@@ -234,7 +236,7 @@ export function updateTodo(id: string, fields: Partial<Pick<Todo, 'priority' | '
 				const from = t[key];
 				const to = fields[key];
 				if (JSON.stringify(from) !== JSON.stringify(to)) {
-					events.push({ type: 'edited', timestamp: now, detail: { field: key, from, to } });
+					events.push({ type: 'edited', timestamp: now, detail: { field: key, from, to, ...(actorId ? { actorId } : {}) } });
 				}
 			}
 			return {
@@ -246,7 +248,7 @@ export function updateTodo(id: string, fields: Partial<Pick<Todo, 'priority' | '
 	);
 }
 
-export function addAttachment(todoId: string, attachment: Attachment): boolean {
+export function addAttachment(todoId: string, attachment: Attachment, actorId?: string): boolean {
 	snapshot();
 	const now = new Date().toISOString();
 	let previousTodos: Todo[] = [];
@@ -260,7 +262,7 @@ export function addAttachment(todoId: string, attachment: Attachment): boolean {
 				attachments: [...t.attachments, attachment],
 				activityLog: [
 					...t.activityLog,
-					{ type: 'attachment_added' as const, timestamp: now, detail: { name: attachment.name } }
+					{ type: 'attachment_added' as const, timestamp: now, detail: { name: attachment.name, ...(actorId ? { actorId } : {}) } }
 				]
 			};
 		})
@@ -275,7 +277,7 @@ export function addAttachment(todoId: string, attachment: Attachment): boolean {
 	return true;
 }
 
-export function removeAttachment(todoId: string, attachmentId: string): void {
+export function removeAttachment(todoId: string, attachmentId: string, actorId?: string): void {
 	snapshot();
 	const now = new Date().toISOString();
 	todos.update((current) =>
@@ -290,7 +292,7 @@ export function removeAttachment(todoId: string, attachmentId: string): void {
 					{
 						type: 'attachment_removed' as const,
 						timestamp: now,
-						detail: { name: attachment?.name ?? 'unknown' }
+						detail: { name: attachment?.name ?? 'unknown', ...(actorId ? { actorId } : {}) }
 					}
 				]
 			};
@@ -298,7 +300,7 @@ export function removeAttachment(todoId: string, attachmentId: string): void {
 	);
 }
 
-export function addComment(todoId: string, body: string): void {
+export function addComment(todoId: string, body: string, actorId?: string): void {
 	const trimmed = body.trim();
 	if (trimmed === '') return;
 	snapshot();
@@ -317,7 +319,7 @@ export function addComment(todoId: string, body: string): void {
 	);
 }
 
-export function editComment(todoId: string, commentId: string, body: string): void {
+export function editComment(todoId: string, commentId: string, body: string, actorId?: string): void {
 	const trimmed = body.trim();
 	if (trimmed === '') return;
 	snapshot();
@@ -334,7 +336,7 @@ export function editComment(todoId: string, commentId: string, body: string): vo
 	);
 }
 
-export function deleteComment(todoId: string, commentId: string): void {
+export function deleteComment(todoId: string, commentId: string, actorId?: string): void {
 	snapshot();
 	todos.update((current) =>
 		current.map((t) => {
@@ -344,7 +346,7 @@ export function deleteComment(todoId: string, commentId: string): void {
 	);
 }
 
-export function addReply(todoId: string, commentId: string, body: string): void {
+export function addReply(todoId: string, commentId: string, body: string, actorId?: string): void {
 	const trimmed = body.trim();
 	if (trimmed === '') return;
 	snapshot();
@@ -368,7 +370,7 @@ export function addReply(todoId: string, commentId: string, body: string): void 
 	);
 }
 
-export function editReply(todoId: string, commentId: string, replyId: string, body: string): void {
+export function editReply(todoId: string, commentId: string, replyId: string, body: string, actorId?: string): void {
 	const trimmed = body.trim();
 	if (trimmed === '') return;
 	snapshot();
@@ -391,7 +393,7 @@ export function editReply(todoId: string, commentId: string, replyId: string, bo
 	);
 }
 
-export function deleteReply(todoId: string, commentId: string, replyId: string): void {
+export function deleteReply(todoId: string, commentId: string, replyId: string, actorId?: string): void {
 	snapshot();
 	todos.update((current) =>
 		current.map((t) => {
@@ -407,31 +409,33 @@ export function deleteReply(todoId: string, commentId: string, replyId: string):
 	);
 }
 
-export function archiveTodo(id: string): void {
+export function archiveTodo(id: string, actorId?: string): void {
 	snapshot();
 	const now = new Date().toISOString();
+	const detail = actorId ? { actorId } : undefined;
 	todos.update((current) =>
 		current.map((t) => {
 			if (t.id !== id) return t;
 			return {
 				...t,
 				archived: true,
-				activityLog: [...t.activityLog, { type: 'archived' as const, timestamp: now }]
+				activityLog: [...t.activityLog, { type: 'archived' as const, timestamp: now, ...(detail ? { detail } : {}) }]
 			};
 		})
 	);
 }
 
-export function unarchiveTodo(id: string): void {
+export function unarchiveTodo(id: string, actorId?: string): void {
 	snapshot();
 	const now = new Date().toISOString();
+	const detail = actorId ? { actorId } : undefined;
 	todos.update((current) =>
 		current.map((t) => {
 			if (t.id !== id) return t;
 			return {
 				...t,
 				archived: false,
-				activityLog: [...t.activityLog, { type: 'unarchived' as const, timestamp: now }]
+				activityLog: [...t.activityLog, { type: 'unarchived' as const, timestamp: now, ...(detail ? { detail } : {}) }]
 			};
 		})
 	);

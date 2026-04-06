@@ -6,6 +6,7 @@
 	import ViewToggle from '$lib/components/ViewToggle.svelte';
 	import KanbanBoard from '$lib/components/KanbanBoard.svelte';
 	import BoardStatsDashboard from '$lib/components/BoardStatsDashboard.svelte';
+	import ExportBoardButton from '$lib/components/ExportBoardButton.svelte';
 	import ThemeToggle from '$lib/components/ThemeToggle.svelte';
 	import SortToggle from '$lib/components/SortToggle.svelte';
 	import SearchBar from '$lib/components/SearchBar.svelte';
@@ -76,6 +77,7 @@
 		<TodoList />
 	{:else}
 		<BoardStatsDashboard />
+		<ExportBoardButton />
 		<KanbanBoard />
 	{/if}
 </div>

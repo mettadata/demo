@@ -1,0 +1,56 @@
+version: 10
+hash: sha256:ec54680d4a7f
+updated: 2026-04-06T05:17:06.611Z
+requirements:
+  - id: broadcast-sync-module
+    hash: sha256:308408264f44
+    scenarios:
+      - add-card-in-tab-a-tab-b-receives-update-within-200-ms
+      - broadcast-does-not-echo-back-to-the-originating-tab
+      - received-payload-replaces-store-state-wholesale
+      - unsupported-message-type-is-ignored
+  - id: collaborator-identity-store
+    hash: sha256:4b71fc6cd530
+    scenarios:
+      - first-ever-page-load-generates-and-persists-a-uuid
+      - returning-user-reuses-existing-uuid
+      - deterministic-color-is-stable-across-reloads
+      - name-defaults-to-anonymous-when-not-set
+      - name-update-persists-to-localstorage
+  - id: presence-heartbeat
+    hash: sha256:0ea1fc4fae2b
+    scenarios:
+      - heartbeat-on-page-load-registers-self-in-another-tab
+      - heartbeat-refreshes-lastseen
+      - stale-collaborator-is-evicted-after-90-seconds
+      - self-is-not-added-to-activecollaborators
+  - id: first-visit-name-prompt
+    hash: sha256:2dbe89f945c8
+    scenarios:
+      - prompt-appears-on-first-load
+      - prompt-does-not-appear-when-name-is-already-stored
+      - submitting-a-name-closes-the-prompt-and-persists
+      - dismissing-without-a-name-uses-anonymous-and-suppresses-re-prompt
+      - empty-name-submission-is-ignored
+  - id: editable-name-in-header
+    hash: sha256:0dea30a023ee
+    scenarios:
+      - settings-control-is-always-visible-in-header
+      - activating-the-control-shows-current-name
+      - submitting-a-new-name-updates-the-store-and-localstorage
+      - submitting-an-empty-name-is-rejected
+  - id: kanban-card-last-actor-avatar
+    hash: sha256:d4ab45e5c6af
+    scenarios:
+      - card-with-actorid-matching-an-active-collaborator-shows-avatar
+      - card-where-actorid-matches-self-shows-self-avatar
+      - card-with-no-actorid-in-any-event-shows-no-avatar
+      - initials-are-derived-from-collaborator-name
+      - single-word-name-produces-one-character-initial
+  - id: kanban-board-who-is-here
+    hash: sha256:7f42c82ff609
+    scenarios:
+      - board-header-shows-self-avatar-when-alone
+      - board-header-shows-remote-collaborators
+      - collaborator-removed-from-presence-is-removed-from-header
+      - each-avatar-has-accessible-label

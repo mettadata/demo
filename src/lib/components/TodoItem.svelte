@@ -8,6 +8,7 @@
 	import LabelPicker from './LabelPicker.svelte';
 	import ActivityLog from './ActivityLog.svelte';
 	import { labels, getLabelsByIds } from '$lib/stores/labels.js';
+	import { self } from '$lib/stores/collaborators.js';
 
 	let { todo }: { todo: Todo } = $props();
 </script>
@@ -17,7 +18,7 @@
 		<input
 			type="checkbox"
 			checked={todo.completed}
-			onchange={() => toggleTodo(todo.id)}
+			onchange={() => toggleTodo(todo.id, $self.id)}
 			aria-label="Toggle {todo.text}"
 		/>
 		<span class={todo.completed ? 'line-through text-gray-400 flex-1' : 'flex-1'}>{todo.text}</span>
@@ -32,7 +33,7 @@
 		{/if}
 		{#if todo.completed && !todo.archived}
 			<button
-				onclick={() => archiveTodo(todo.id)}
+				onclick={() => archiveTodo(todo.id, $self.id)}
 				aria-label="Archive {todo.text}"
 				class="text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 px-2 py-1"
 			>
@@ -41,7 +42,7 @@
 		{/if}
 		{#if todo.archived}
 			<button
-				onclick={() => unarchiveTodo(todo.id)}
+				onclick={() => unarchiveTodo(todo.id, $self.id)}
 				aria-label="Unarchive {todo.text}"
 				class="text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 px-2 py-1"
 			>
@@ -49,7 +50,7 @@
 			</button>
 		{/if}
 		<button
-			onclick={() => removeTodo(todo.id)}
+			onclick={() => removeTodo(todo.id, $self.id)}
 			aria-label="Delete {todo.text}"
 			class="text-red-500 hover:text-red-700 px-2 py-1"
 		>
@@ -61,7 +62,7 @@
 		<select
 			class="text-xs px-1 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white"
 			value={todo.priority}
-			onchange={(e) => updateTodo(todo.id, { priority: (e.currentTarget as HTMLSelectElement).value as Priority })}
+			onchange={(e) => updateTodo(todo.id, { priority: (e.currentTarget as HTMLSelectElement).value as Priority }, $self.id)}
 			aria-label="Priority for {todo.text}"
 		>
 			<option value="none">No priority</option>
@@ -73,7 +74,7 @@
 			type="date"
 			class="text-xs px-1 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 dark:text-white"
 			value={todo.dueDate ?? ''}
-			onchange={(e) => updateTodo(todo.id, { dueDate: (e.currentTarget as HTMLInputElement).value || null })}
+			onchange={(e) => updateTodo(todo.id, { dueDate: (e.currentTarget as HTMLInputElement).value || null }, $self.id)}
 			aria-label="Due date for {todo.text}"
 		/>
 	</div>

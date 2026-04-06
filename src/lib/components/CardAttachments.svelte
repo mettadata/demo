@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { Attachment } from '$lib/stores/todos.js';
 	import { addAttachment, removeAttachment } from '$lib/stores/todos.js';
+	import { self } from '$lib/stores/collaborators.js';
 
 	const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
@@ -34,7 +35,7 @@
 					size: file.size,
 					createdAt: new Date().toISOString()
 				};
-				const ok = addAttachment(todoId, attachment);
+				const ok = addAttachment(todoId, attachment, $self.id);
 				if (!ok) {
 					errorMessage = 'Storage quota exceeded. Could not save attachment.';
 				}
@@ -74,7 +75,7 @@
 	}
 
 	function handleRemove(attachmentId: string) {
-		removeAttachment(todoId, attachmentId);
+		removeAttachment(todoId, attachmentId, $self.id);
 	}
 
 	function isImage(mimeType: string): boolean {

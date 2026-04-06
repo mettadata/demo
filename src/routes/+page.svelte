@@ -13,13 +13,58 @@
 	import UndoRedoButtons from '$lib/components/UndoRedoButtons.svelte';
 	import LabelManager from '$lib/components/LabelManager.svelte';
 	import ShortcutsHelpModal from '$lib/components/ShortcutsHelpModal.svelte';
-	import { viewPreference } from '$lib/stores/kanban.js';
+	import { viewPreference, kanbanState } from '$lib/stores/kanban.js';
 	import { undo, redo } from '$lib/stores/history.js';
+	import { todos } from '$lib/stores/todos.js';
+	import { listenForRemoteUpdates } from '$lib/sync/broadcastSync.js';
+	import { self, updateSelfName, initPresence, destroyPresence } from '$lib/stores/collaborators.js';
 
 	let showLabelManager = $state(false);
 	let showShortcutsHelp = $state(false);
+	let showNamePrompt = $state(false);
+	let nameInput = $state('');
+	let showNameEditor = $state(false);
+	let nameEditorInput = $state('');
+
+	function confirmName() {
+		const trimmed = nameInput.trim();
+		if (trimmed === '') return;
+		updateSelfName(trimmed);
+		showNamePrompt = false;
+	}
+
+	function dismissPrompt() {
+		updateSelfName('Anonymous');
+		showNamePrompt = false;
+	}
+
+	function saveName() {
+		const trimmed = nameEditorInput.trim();
+		if (trimmed === '') return;
+		updateSelfName(trimmed);
+		showNameEditor = false;
+	}
+
+	function cancelNameEditor() {
+		showNameEditor = false;
+	}
 
 	onMount(() => {
+		// Check for first-visit name prompt
+		if (localStorage.getItem('user-name') === null) {
+			showNamePrompt = true;
+		}
+
+		// Initialize presence heartbeats and expiry polling
+		initPresence();
+
+		// Wire remote sync listener
+		const unsubscribe = listenForRemoteUpdates(
+			(t) => todos.set(t),
+			(s) => kanbanState.set(s),
+			() => {} // heartbeat handled inside initPresence listener
+		);
+
 		function handleKeydown(e: KeyboardEvent) {
 			const target = e.target as HTMLElement;
 			const tag = target.tagName.toLowerCase();
@@ -39,7 +84,11 @@
 		}
 
 		window.addEventListener('keydown', handleKeydown);
-		return () => window.removeEventListener('keydown', handleKeydown);
+		return () => {
+			window.removeEventListener('keydown', handleKeydown);
+			unsubscribe();
+			destroyPresence();
+		};
 	});
 </script>
 
@@ -64,6 +113,37 @@
 					<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-3a1 1 0 00-.867.5 1 1 0 11-1.731-1A3 3 0 0113 8a3.001 3.001 0 01-2 2.83V11a1 1 0 11-2 0v-1a1 1 0 011-1 1 1 0 100-2zm0 8a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
 				</svg>
 			</button>
+			<!-- Name edit button -->
+			<div class="relative">
+				<button
+					class="p-2 rounded-lg text-gray-600 hover:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-700 transition-colors"
+					onclick={() => { nameEditorInput = $self.name; showNameEditor = !showNameEditor; }}
+					aria-label="Edit your display name"
+				>
+					<svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" viewBox="0 0 20 20" fill="currentColor">
+						<path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
+					</svg>
+				</button>
+				{#if showNameEditor}
+					<div class="absolute right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-2 flex items-center gap-2 z-50">
+						<input
+							type="text"
+							bind:value={nameEditorInput}
+							aria-label="Your display name"
+							class="text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-700 dark:text-white w-32"
+							onkeydown={(e) => { if (e.key === 'Enter') saveName(); else if (e.key === 'Escape') cancelNameEditor(); }}
+						/>
+						<button
+							class="text-sm px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+							onclick={saveName}
+						>Save</button>
+						<button
+							class="text-sm px-2 py-1 bg-gray-200 dark:bg-gray-600 dark:text-white rounded hover:bg-gray-300 dark:hover:bg-gray-500"
+							onclick={cancelNameEditor}
+						>Cancel</button>
+					</div>
+				{/if}
+			</div>
 			<UndoRedoButtons />
 			<SortToggle />
 			<ThemeToggle />
@@ -84,3 +164,30 @@
 </div>
 <LabelManager bind:open={showLabelManager} />
 <ShortcutsHelpModal bind:open={showShortcutsHelp} />
+
+{#if showNamePrompt}
+	<div
+		role="dialog"
+		aria-label="Set your display name"
+		aria-modal="false"
+		class="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 p-4 flex items-center gap-3 shadow-lg z-50"
+	>
+		<span class="text-sm dark:text-white">What should we call you?</span>
+		<input
+			type="text"
+			bind:value={nameInput}
+			aria-label="Display name"
+			placeholder="Enter your name..."
+			class="text-sm border border-gray-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-700 dark:text-white flex-1 max-w-xs"
+			onkeydown={(e) => { if (e.key === 'Enter') confirmName(); }}
+		/>
+		<button
+			class="text-sm px-3 py-1 bg-blue-500 text-white rounded hover:bg-blue-600"
+			onclick={confirmName}
+		>Confirm</button>
+		<button
+			class="text-sm px-3 py-1 bg-gray-200 dark:bg-gray-600 dark:text-white rounded hover:bg-gray-300 dark:hover:bg-gray-500"
+			onclick={dismissPrompt}
+		>Skip</button>
+	</div>
+{/if}

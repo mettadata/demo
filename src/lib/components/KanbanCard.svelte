@@ -13,6 +13,7 @@
 	import LabelPicker from './LabelPicker.svelte';
 	import { truncateDescription } from '$lib/utils/markdown.js';
 	import { labels, getLabelsByIds } from '$lib/stores/labels.js';
+	import { self, activeCollaborators, getInitials, deriveColor } from '$lib/stores/collaborators.js';
 	import ActivityLog from './ActivityLog.svelte';
 	import CardAttachments from './CardAttachments.svelte';
 	import CardComments from './CardComments.svelte';
@@ -21,6 +22,29 @@
 
 	let dragging = $state(false);
 	let showEdit = $state(false);
+
+	let lastActorAvatar = $derived.by(() => {
+		let bestEvent: { actorId: string; timestamp: string } | null = null;
+		for (const event of todo.activityLog) {
+			const actorId = (event.detail as Record<string, unknown> | undefined)?.actorId;
+			if (typeof actorId === 'string' && actorId !== '') {
+				if (!bestEvent || event.timestamp > bestEvent.timestamp) {
+					bestEvent = { actorId, timestamp: event.timestamp };
+				}
+			}
+		}
+		if (!bestEvent) return null;
+
+		const aid = bestEvent.actorId;
+		if (aid === $self.id) {
+			return { initials: getInitials($self.name), color: $self.color, name: $self.name };
+		}
+		const remote = $activeCollaborators.find((c) => c.id === aid);
+		if (remote) {
+			return { initials: getInitials(remote.name), color: remote.color, name: remote.name };
+		}
+		return { initials: '?', color: deriveColor(aid), name: 'Unknown' };
+	});
 
 	const keyboardDrag = getContext<{
 		state: {
@@ -73,7 +97,7 @@
 			event.preventDefault();
 			if (keyboardDrag.state.currentIndex > 0) {
 				const newIndex = keyboardDrag.state.currentIndex - 1;
-				moveCard(todo.id, keyboardDrag.state.currentColumnId, newIndex);
+				moveCard(todo.id, keyboardDrag.state.currentColumnId, newIndex, $self.id);
 				keyboardDrag.state.currentIndex = newIndex;
 				keyboardDrag.announce(`${todo.text} moved to position ${newIndex + 1}`);
 			}
@@ -83,7 +107,7 @@
 			const col = board.find(c => c.id === keyboardDrag.state.currentColumnId);
 			if (col && keyboardDrag.state.currentIndex < col.cards.length - 1) {
 				const newIndex = keyboardDrag.state.currentIndex + 1;
-				moveCard(todo.id, keyboardDrag.state.currentColumnId, newIndex);
+				moveCard(todo.id, keyboardDrag.state.currentColumnId, newIndex, $self.id);
 				keyboardDrag.state.currentIndex = newIndex;
 				keyboardDrag.announce(`${todo.text} moved to position ${newIndex + 1}`);
 			}
@@ -170,7 +194,7 @@
 					adjustedIndex--;
 				}
 			}
-			moveCard(todo.id, touchTargetColumnId, adjustedIndex);
+			moveCard(todo.id, touchTargetColumnId, adjustedIndex, $self.id);
 			touchDragging = false;
 		}
 	}
@@ -196,9 +220,17 @@
 		<span class="flex-1 {todo.completed ? 'line-through text-gray-400' : 'dark:text-white'}">
 			{todo.text}
 		</span>
+		{#if lastActorAvatar}
+			<span
+				class="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold text-white flex-shrink-0"
+				style="background-color: {lastActorAvatar.color}"
+				aria-label={lastActorAvatar.name}
+				title={lastActorAvatar.name}
+			>{lastActorAvatar.initials}</span>
+		{/if}
 		{#if todo.completed && !todo.archived}
 			<button
-				onclick={(e) => { e.stopPropagation(); archiveTodo(todo.id); }}
+				onclick={(e) => { e.stopPropagation(); archiveTodo(todo.id, $self.id); }}
 				onpointerdown={(e) => e.stopPropagation()}
 				aria-label="Archive {todo.text}"
 				class="text-xs text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 px-1 flex-shrink-0"
@@ -207,7 +239,7 @@
 		{/if}
 		{#if todo.archived}
 			<button
-				onclick={(e) => { e.stopPropagation(); unarchiveTodo(todo.id); }}
+				onclick={(e) => { e.stopPropagation(); unarchiveTodo(todo.id, $self.id); }}
 				onpointerdown={(e) => e.stopPropagation()}
 				aria-label="Unarchive {todo.text}"
 				class="text-xs text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 px-1 flex-shrink-0"
@@ -252,7 +284,7 @@
 			<select
 				class="text-xs px-1 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-600 dark:text-white"
 				value={todo.priority}
-				onchange={(e) => updateTodo(todo.id, { priority: (e.currentTarget as HTMLSelectElement).value as Priority })}
+				onchange={(e) => updateTodo(todo.id, { priority: (e.currentTarget as HTMLSelectElement).value as Priority }, $self.id)}
 				onpointerdown={(e) => e.stopPropagation()}
 				aria-label="Priority for {todo.text}"
 			>
@@ -265,7 +297,7 @@
 				type="date"
 				class="text-xs px-1 py-0.5 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-600 dark:text-white"
 				value={todo.dueDate ?? ''}
-				onchange={(e) => updateTodo(todo.id, { dueDate: (e.currentTarget as HTMLInputElement).value || null })}
+				onchange={(e) => updateTodo(todo.id, { dueDate: (e.currentTarget as HTMLInputElement).value || null }, $self.id)}
 				onpointerdown={(e) => e.stopPropagation()}
 				aria-label="Due date for {todo.text}"
 			/>

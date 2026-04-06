@@ -2,6 +2,7 @@
 	import { labels } from '$lib/stores/labels.js';
 	import { LABEL_COLOR_CLASSES } from '$lib/stores/labels.js';
 	import { updateTodo } from '$lib/stores/todos.js';
+	import { self } from '$lib/stores/collaborators.js';
 
 	let { todoId, labelIds }: { todoId: string; labelIds: string[] } = $props();
 
@@ -11,7 +12,7 @@
 		const newIds = labelIds.includes(labelId)
 			? labelIds.filter((id) => id !== labelId)
 			: [...labelIds, labelId];
-		updateTodo(todoId, { labelIds: newIds });
+		updateTodo(todoId, { labelIds: newIds }, $self.id);
 	}
 </script>
 

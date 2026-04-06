@@ -1,6 +1,15 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { get } from 'svelte/store';
 
+// Mock broadcastSync module
+const mockBroadcastTodos = vi.fn();
+vi.mock('../sync/broadcastSync.js', () => ({
+	broadcastTodos: (...args: unknown[]) => mockBroadcastTodos(...args),
+	broadcastKanban: vi.fn(),
+	broadcastHeartbeat: vi.fn(),
+	listenForRemoteUpdates: vi.fn(() => () => {})
+}));
+
 // Mock localStorage before importing the store module
 const localStorageMock = (() => {
 	let store: Record<string, string> = {};
@@ -61,6 +70,7 @@ describe('todo store', () => {
 		localStorageMock.clear();
 		vi.mocked(localStorageMock.getItem).mockClear();
 		vi.mocked(localStorageMock.setItem).mockClear();
+		mockBroadcastTodos.mockClear();
 		uuidCounter = 0;
 
 		const mod = await import('./todos');
@@ -727,5 +737,138 @@ describe('todo store', () => {
 		filter.set('completed');
 		expect(get(filteredTodos)).toHaveLength(1);
 		expect(get(filteredTodos)[0].text).toBe('Completed todo');
+	});
+
+	// --- actorId and broadcast tests ---
+
+	it('addTodo with actorId embeds it in the created event detail', () => {
+		addTodo('Buy milk', 'user-1');
+		const item = get(todos)[0];
+		expect(item.activityLog[0].type).toBe('created');
+		expect(item.activityLog[0].detail).toEqual({ actorId: 'user-1' });
+	});
+
+	it('addTodo without actorId does not include actorId in detail', () => {
+		addTodo('Buy eggs');
+		const item = get(todos)[0];
+		expect(item.activityLog[0].type).toBe('created');
+		expect(item.activityLog[0].detail).toBeUndefined();
+	});
+
+	it('toggleTodo with actorId embeds it in the completed event', () => {
+		addTodo('Test');
+		const id = get(todos)[0].id;
+		toggleTodo(id, 'user-2');
+		const item = get(todos)[0];
+		const lastEvent = item.activityLog[item.activityLog.length - 1];
+		expect(lastEvent.type).toBe('completed');
+		expect(lastEvent.detail).toEqual({ actorId: 'user-2' });
+	});
+
+	it('archiveTodo with actorId embeds it in the archived event', () => {
+		addTodo('Test');
+		const id = get(todos)[0].id;
+		archiveTodo(id, 'user-4');
+		const item = get(todos)[0];
+		const lastEvent = item.activityLog[item.activityLog.length - 1];
+		expect(lastEvent.type).toBe('archived');
+		expect(lastEvent.detail).toEqual({ actorId: 'user-4' });
+	});
+
+	it('unarchiveTodo with actorId embeds it in the unarchived event', () => {
+		addTodo('Test');
+		const id = get(todos)[0].id;
+		archiveTodo(id);
+		unarchiveTodo(id, 'user-5');
+		const item = get(todos)[0];
+		const lastEvent = item.activityLog[item.activityLog.length - 1];
+		expect(lastEvent.type).toBe('unarchived');
+		expect(lastEvent.detail).toEqual({ actorId: 'user-5' });
+	});
+
+	it('broadcastTodos is called once per mutation', () => {
+		mockBroadcastTodos.mockClear();
+		addTodo('Test');
+		expect(mockBroadcastTodos).toHaveBeenCalledTimes(1);
+		expect(mockBroadcastTodos).toHaveBeenCalledWith(get(todos));
+	});
+
+	it('broadcastTodos is called for toggleTodo', () => {
+		addTodo('Test');
+		mockBroadcastTodos.mockClear();
+		toggleTodo(get(todos)[0].id);
+		expect(mockBroadcastTodos).toHaveBeenCalledTimes(1);
+	});
+
+	it('broadcastTodos is called for removeTodo', () => {
+		addTodo('Test');
+		mockBroadcastTodos.mockClear();
+		removeTodo(get(todos)[0].id);
+		expect(mockBroadcastTodos).toHaveBeenCalledTimes(1);
+	});
+
+	it('addAttachment does not broadcast on quota exceeded', () => {
+		addTodo('Test');
+		const id = get(todos)[0].id;
+		mockBroadcastTodos.mockClear();
+
+		vi.mocked(localStorageMock.setItem).mockImplementationOnce(() => {
+			throw new DOMException('QuotaExceededError');
+		});
+
+		const ok = addAttachment(id, {
+			id: 'att-q',
+			name: 'big.zip',
+			mimeType: 'application/zip',
+			dataUrl: 'data:application/zip;base64,abc',
+			size: 4000000,
+			createdAt: new Date().toISOString()
+		});
+
+		expect(ok).toBe(false);
+		expect(mockBroadcastTodos).not.toHaveBeenCalled();
+	});
+
+	it('addAttachment broadcasts on success', () => {
+		addTodo('Test');
+		const id = get(todos)[0].id;
+		mockBroadcastTodos.mockClear();
+
+		const ok = addAttachment(id, {
+			id: 'att-ok',
+			name: 'file.txt',
+			mimeType: 'text/plain',
+			dataUrl: 'data:text/plain;base64,abc',
+			size: 100,
+			createdAt: new Date().toISOString()
+		});
+
+		expect(ok).toBe(true);
+		expect(mockBroadcastTodos).toHaveBeenCalledTimes(1);
+	});
+
+	it('remote todos.set does not push to undo stack', async () => {
+		// Import history module to check undo stack
+		const historyMod = await import('./history');
+		expect(get(historyMod.canUndo)).toBe(false);
+
+		// Direct store.set (simulating remote update) should not create undo entry
+		todos.set([{
+			id: 'remote-1',
+			text: 'Remote card',
+			description: '',
+			completed: false,
+			createdAt: new Date().toISOString(),
+			priority: 'none',
+			dueDate: null,
+			labelIds: [],
+			attachments: [],
+			comments: [],
+			archived: false,
+			activityLog: [{ type: 'created', timestamp: new Date().toISOString() }]
+		}]);
+
+		// canUndo should still be false because direct set bypasses snapshot
+		expect(get(historyMod.canUndo)).toBe(false);
 	});
 });

@@ -4,6 +4,7 @@
 	import { sortByDueDate, sortTodosByDueDate, searchQuery } from '$lib/stores/todos.js';
 	import { flip } from 'svelte/animate';
 	import KanbanCard from './KanbanCard.svelte';
+	import { self } from '$lib/stores/collaborators.js';
 
 	let { column }: { column: ResolvedColumn } = $props();
 
@@ -109,7 +110,7 @@
 			}
 		}
 
-		moveCard(todoId, column.id, adjustedIndex);
+		moveCard(todoId, column.id, adjustedIndex, $self.id);
 		dropIndex = -1;
 	}
 </script>

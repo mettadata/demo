@@ -24,10 +24,16 @@ export const LABEL_COLOR_CLASSES: Record<LabelColor, { bg: string; text: string;
 
 export const LABELS_STORAGE_KEY = 'labels';
 
+let currentUserId = '';
+
+function labelsKey(): string {
+  return currentUserId ? `labels_${currentUserId}` : LABELS_STORAGE_KEY;
+}
+
 function loadLabels(): Label[] {
   if (typeof window === 'undefined') return [];
   try {
-    const raw = localStorage.getItem(LABELS_STORAGE_KEY);
+    const raw = localStorage.getItem(labelsKey());
     if (raw === null) return [];
     const parsed = JSON.parse(raw);
     if (!Array.isArray(parsed)) return [];
@@ -39,9 +45,14 @@ export const labels: Writable<Label[]> = writable<Label[]>(loadLabels());
 
 labels.subscribe((value) => {
   if (typeof window === 'undefined') return;
-  try { localStorage.setItem(LABELS_STORAGE_KEY, JSON.stringify(value)); }
+  try { localStorage.setItem(labelsKey(), JSON.stringify(value)); }
   catch { console.warn('Failed to persist labels'); }
 });
+
+export function initLabels(userId: string): void {
+  currentUserId = userId;
+  labels.set(loadLabels());
+}
 
 export function addLabel(name: string, color: LabelColor): string {
   const id = crypto.randomUUID();

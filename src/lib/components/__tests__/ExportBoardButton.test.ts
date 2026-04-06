@@ -123,13 +123,13 @@ describe('ExportBoardButton', () => {
 			{
 				id: 'todo-1', text: 'Task 1', description: '', completed: false,
 				createdAt: now, priority: 'none' as const, dueDate: null, labelIds: ['label-1'],
-				attachments: [], comments: [], archived: false,
+				attachments: [], comments: [], archived: false, ownerId: '',
 				activityLog: [{ type: 'created' as const, timestamp: now }]
 			},
 			{
 				id: 'todo-2', text: 'Task 2', description: '', completed: true,
 				createdAt: now, priority: 'high' as const, dueDate: null, labelIds: [],
-				attachments: [], comments: [], archived: false,
+				attachments: [], comments: [], archived: false, ownerId: '',
 				activityLog: [{ type: 'created' as const, timestamp: now }]
 			}
 		];
@@ -171,7 +171,7 @@ describe('ExportBoardButton', () => {
 			{
 				id: 'todo-1', text: 'Task 1', description: '', completed: false,
 				createdAt: now, priority: 'none' as const, dueDate: null, labelIds: ['label-1'],
-				attachments: [], comments: [], archived: false,
+				attachments: [], comments: [], archived: false, ownerId: '',
 				activityLog: [{ type: 'created' as const, timestamp: now }]
 			}
 		]);

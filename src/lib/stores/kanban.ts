@@ -3,6 +3,7 @@ import type { Writable, Readable } from 'svelte/store';
 import { todos } from './todos.js';
 import type { Todo, ActivityEvent } from './todos.js';
 import { broadcastKanban, broadcastTodos } from '../sync/broadcastSync.js';
+import { STORAGE_KEY as TODOS_STORAGE_KEY } from './todos.js';
 
 export interface KanbanColumn {
 	id: string;
@@ -24,6 +25,16 @@ export type ViewPreference = 'list' | 'kanban';
 
 export const KANBAN_STORAGE_KEY = 'kanban-state';
 export const VIEW_PREF_STORAGE_KEY = 'view-preference';
+
+let currentUserId = '';
+
+function kanbanKey(): string {
+	return currentUserId ? `kanban-state_${currentUserId}` : KANBAN_STORAGE_KEY;
+}
+
+function viewPrefKey(): string {
+	return currentUserId ? `view-preference_${currentUserId}` : VIEW_PREF_STORAGE_KEY;
+}
 
 const DEFAULT_COLUMNS: KanbanColumn[] = [
 	{ id: 'col-todo', title: 'To Do', cardIds: [] },
@@ -75,7 +86,7 @@ export const BOARD_TEMPLATES: Record<'kanban' | 'scrum' | 'personal', BoardTempl
 function loadKanbanState(existingTodoIds: string[]): KanbanState {
 	if (typeof window === 'undefined') return { columns: structuredClone(DEFAULT_COLUMNS) };
 	try {
-		const raw = localStorage.getItem(KANBAN_STORAGE_KEY);
+		const raw = localStorage.getItem(kanbanKey());
 		if (raw !== null) {
 			const parsed = JSON.parse(raw);
 			if (parsed && Array.isArray(parsed.columns)) {
@@ -93,7 +104,7 @@ function loadKanbanState(existingTodoIds: string[]): KanbanState {
 function loadViewPreference(): ViewPreference {
 	if (typeof window === 'undefined') return 'list';
 	try {
-		const raw = localStorage.getItem(VIEW_PREF_STORAGE_KEY);
+		const raw = localStorage.getItem(viewPrefKey());
 		if (raw === 'list' || raw === 'kanban') return raw;
 	} catch {
 		// fall through
@@ -104,7 +115,8 @@ function loadViewPreference(): ViewPreference {
 function getInitialTodoIds(): string[] {
 	if (typeof window === 'undefined') return [];
 	try {
-		const raw = localStorage.getItem('todos');
+		const todosStorageKey = currentUserId ? `${TODOS_STORAGE_KEY}_${currentUserId}` : TODOS_STORAGE_KEY;
+		const raw = localStorage.getItem(todosStorageKey);
 		if (raw === null) return [];
 		const parsed = JSON.parse(raw);
 		if (!Array.isArray(parsed)) return [];
@@ -123,7 +135,7 @@ export const viewPreference: Writable<ViewPreference> = writable<ViewPreference>
 kanbanState.subscribe((value) => {
 	if (typeof window === 'undefined') return;
 	try {
-		localStorage.setItem(KANBAN_STORAGE_KEY, JSON.stringify(value));
+		localStorage.setItem(kanbanKey(), JSON.stringify(value));
 	} catch {
 		console.warn('Failed to persist kanban state to localStorage');
 	}
@@ -133,7 +145,7 @@ kanbanState.subscribe((value) => {
 viewPreference.subscribe((value) => {
 	if (typeof window === 'undefined') return;
 	try {
-		localStorage.setItem(VIEW_PREF_STORAGE_KEY, value);
+		localStorage.setItem(viewPrefKey(), value);
 	} catch {
 		console.warn('Failed to persist view preference to localStorage');
 	}
@@ -202,6 +214,13 @@ todos.subscribe((currentTodos) => {
 	syncWithTodos(currentTodos);
 });
 
+export function initKanban(userId: string): void {
+	currentUserId = userId;
+	const todoIds = getInitialTodoIds();
+	kanbanState.set(loadKanbanState(todoIds));
+	viewPreference.set(loadViewPreference());
+}
+
 // --- Template functions ---
 
 export function isBoardPristine(): boolean {
@@ -238,6 +257,7 @@ export function applyTemplate(templateName: string): void {
 				description: '',
 				completed: false,
 				createdAt: now,
+				ownerId: '',
 				priority: 'none',
 				dueDate: null,
 				labelIds: [],

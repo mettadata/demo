@@ -199,8 +199,8 @@ describe('kanban store', () => {
 
 	it('sync adds new todo IDs to first column', () => {
 		todos.set([
-			{ id: 'new-todo-1', text: 'Task 1', description: '', completed: false, createdAt: new Date().toISOString(), priority: 'none', dueDate: null, labelIds: [], activityLog: [], attachments: [], comments: [], archived: false },
-			{ id: 'new-todo-2', text: 'Task 2', description: '', completed: false, createdAt: new Date().toISOString(), priority: 'none', dueDate: null, labelIds: [], activityLog: [], attachments: [], comments: [], archived: false }
+			{ id: 'new-todo-1', text: 'Task 1', description: '', completed: false, createdAt: new Date().toISOString(), priority: 'none', dueDate: null, labelIds: [], activityLog: [], attachments: [], comments: [], archived: false, ownerId: '' },
+			{ id: 'new-todo-2', text: 'Task 2', description: '', completed: false, createdAt: new Date().toISOString(), priority: 'none', dueDate: null, labelIds: [], activityLog: [], attachments: [], comments: [], archived: false, ownerId: '' }
 		]);
 
 		const state = get(kanbanState);

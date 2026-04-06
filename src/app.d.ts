@@ -2,9 +2,17 @@
 // for information about these interfaces
 declare global {
 	namespace App {
+		interface LocalUser {
+			id: string;
+			username: string;
+		}
 		// interface Error {}
-		// interface Locals {}
-		// interface PageData {}
+		interface Locals {
+			user?: LocalUser;
+		}
+		interface PageData {
+			user?: LocalUser;
+		}
 		// interface PageState {}
 		// interface Platform {}
 	}

@@ -118,8 +118,7 @@ function initPresence(): void {
 	);
 }
 
-// Initialize presence on module load (browser only)
-initPresence();
+export { initPresence };
 
 export function destroyPresence(): void {
 	if (heartbeatInterval !== null) {

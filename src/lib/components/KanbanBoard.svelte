@@ -55,7 +55,7 @@
 
 	function cancel() {
 		if (keyboardDragState.cardId) {
-			moveCard(keyboardDragState.cardId, keyboardDragState.originalColumnId, keyboardDragState.originalIndex);
+			moveCard(keyboardDragState.cardId, keyboardDragState.originalColumnId, keyboardDragState.originalIndex, $self.id);
 		}
 		announce(`${keyboardDragState.cardText} cancelled`);
 		keyboardDragState.cardId = null;
@@ -86,7 +86,7 @@
 			if (currentColIndex > 0) {
 				const prevCol = board[currentColIndex - 1];
 				const targetIndex = prevCol.cards.length;
-				moveCard(keyboardDragState.cardId, prevCol.id, targetIndex);
+				moveCard(keyboardDragState.cardId, prevCol.id, targetIndex, $self.id);
 				keyboardDragState.currentColumnId = prevCol.id;
 				keyboardDragState.currentIndex = targetIndex;
 				announce(`${keyboardDragState.cardText} moved to ${prevCol.title}`);
@@ -96,7 +96,7 @@
 			if (currentColIndex < board.length - 1) {
 				const nextCol = board[currentColIndex + 1];
 				const targetIndex = nextCol.cards.length;
-				moveCard(keyboardDragState.cardId, nextCol.id, targetIndex);
+				moveCard(keyboardDragState.cardId, nextCol.id, targetIndex, $self.id);
 				keyboardDragState.currentColumnId = nextCol.id;
 				keyboardDragState.currentIndex = targetIndex;
 				announce(`${keyboardDragState.cardText} moved to ${nextCol.title}`);

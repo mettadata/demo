@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { addTodo } from '$lib/stores/todos.js';
+	import { self } from '$lib/stores/collaborators.js';
 
 	let text = $state('');
 
@@ -7,7 +8,7 @@
 		if (event.key === 'Enter') {
 			const trimmed = text.trim();
 			if (trimmed !== '') {
-				addTodo(trimmed);
+				addTodo(trimmed, $self.id);
 				text = '';
 			}
 		}

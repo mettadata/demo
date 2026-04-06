@@ -17,7 +17,7 @@
 	import { undo, redo } from '$lib/stores/history.js';
 	import { todos } from '$lib/stores/todos.js';
 	import { listenForRemoteUpdates } from '$lib/sync/broadcastSync.js';
-	import { self, updateSelfName, destroyPresence } from '$lib/stores/collaborators.js';
+	import { self, updateSelfName, initPresence, destroyPresence } from '$lib/stores/collaborators.js';
 
 	let showLabelManager = $state(false);
 	let showShortcutsHelp = $state(false);
@@ -55,11 +55,14 @@
 			showNamePrompt = true;
 		}
 
+		// Initialize presence heartbeats and expiry polling
+		initPresence();
+
 		// Wire remote sync listener
 		const unsubscribe = listenForRemoteUpdates(
 			(t) => todos.set(t),
 			(s) => kanbanState.set(s),
-			() => {} // heartbeat handled inside collaborators.ts
+			() => {} // heartbeat handled inside initPresence listener
 		);
 
 		function handleKeydown(e: KeyboardEvent) {

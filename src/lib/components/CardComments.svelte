@@ -2,6 +2,7 @@
 	import type { Comment } from '$lib/stores/todos.js';
 	import { addComment, editComment, deleteComment, addReply, editReply, deleteReply } from '$lib/stores/todos.js';
 	import { formatRelativeTime } from '$lib/utils/relativeTime.js';
+	import { self } from '$lib/stores/collaborators.js';
 
 	let { todoId, comments }: { todoId: string; comments: Comment[] } = $props();
 
@@ -16,7 +17,7 @@
 
 	function handleAddComment() {
 		if (newCommentBody.trim() === '') return;
-		addComment(todoId, newCommentBody);
+		addComment(todoId, newCommentBody, $self.id);
 		newCommentBody = '';
 	}
 
@@ -29,7 +30,7 @@
 
 	function handleSaveEditComment(commentId: string) {
 		if (editingCommentBody.trim() === '') return;
-		editComment(todoId, commentId, editingCommentBody);
+		editComment(todoId, commentId, editingCommentBody, $self.id);
 		editingCommentId = null;
 		editingCommentBody = '';
 	}
@@ -40,7 +41,7 @@
 	}
 
 	function handleDeleteComment(commentId: string) {
-		deleteComment(todoId, commentId);
+		deleteComment(todoId, commentId, $self.id);
 	}
 
 	function handleToggleReplies(commentId: string) {
@@ -68,7 +69,7 @@
 
 	function handleAddReply(commentId: string) {
 		if (newReplyBody.trim() === '') return;
-		addReply(todoId, commentId, newReplyBody);
+		addReply(todoId, commentId, newReplyBody, $self.id);
 		newReplyBody = '';
 		replyingToCommentId = null;
 	}
@@ -91,7 +92,7 @@
 
 	function handleSaveEditReply(replyId: string) {
 		if (editingReplyBody.trim() === '') return;
-		editReply(todoId, _editReplyParentCommentId, replyId, editingReplyBody);
+		editReply(todoId, _editReplyParentCommentId, replyId, editingReplyBody, $self.id);
 		editingReplyId = null;
 		editingReplyBody = '';
 	}
@@ -102,7 +103,7 @@
 	}
 
 	function handleDeleteReply(commentId: string, replyId: string) {
-		deleteReply(todoId, commentId, replyId);
+		deleteReply(todoId, commentId, replyId, $self.id);
 	}
 
 	function handleCommentKeydown(event: KeyboardEvent) {

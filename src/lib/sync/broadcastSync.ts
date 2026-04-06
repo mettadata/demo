@@ -70,12 +70,15 @@ export function listenForRemoteUpdates(
 
 			switch (msg.type) {
 				case 'todos-updated':
+					if (!Array.isArray(msg.payload)) return;
 					onTodos(msg.payload);
 					break;
 				case 'kanban-updated':
+					if (!msg.payload || typeof msg.payload !== 'object' || !('columns' in msg.payload)) return;
 					onKanban(msg.payload);
 					break;
 				case 'presence-heartbeat':
+					if (!msg.payload || typeof msg.payload.id !== 'string') return;
 					onHeartbeat(msg.payload);
 					break;
 				default:

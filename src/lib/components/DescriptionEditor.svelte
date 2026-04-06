@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { renderMarkdown } from '$lib/utils/markdown.js';
 	import { updateTodo } from '$lib/stores/todos.js';
+	import { self } from '$lib/stores/collaborators.js';
 
 	let { description, todoId }: { description: string; todoId: string } = $props();
 
@@ -13,7 +14,7 @@
 	}
 
 	function save() {
-		updateTodo(todoId, { description: draft });
+		updateTodo(todoId, { description: draft }, $self.id);
 		editing = false;
 	}
 

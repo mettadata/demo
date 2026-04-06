@@ -41,6 +41,15 @@ export function findUser(username: string): User | undefined {
 	return users.get(username.toLowerCase().trim());
 }
 
+export function findUserById(id: string): User | undefined {
+	for (const user of users.values()) {
+		if (user.id === id) {
+			return user;
+		}
+	}
+	return undefined;
+}
+
 export function clearUsers(): void {
 	users.clear();
 }

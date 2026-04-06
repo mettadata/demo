@@ -50,7 +50,7 @@ function setupAnchorSpy() {
 	let capturedBlob: Blob | undefined;
 
 	const origCreateObjectURL = createObjectURLMock;
-	origCreateObjectURL.mockImplementation((blob: Blob) => {
+	(origCreateObjectURL as ReturnType<typeof vi.fn>).mockImplementation((blob: Blob) => {
 		capturedBlob = blob;
 		return 'blob:mock-url';
 	});

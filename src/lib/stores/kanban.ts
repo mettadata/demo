@@ -30,6 +30,47 @@ const DEFAULT_COLUMNS: KanbanColumn[] = [
 	{ id: 'col-done', title: 'Done', cardIds: [] }
 ];
 
+export interface BoardTemplate {
+	name: string;
+	description: string;
+	columns: Array<{ title: string; sampleCards: string[] }>;
+}
+
+export const BOARD_TEMPLATES: Record<'kanban' | 'scrum' | 'personal', BoardTemplate> = {
+	kanban: {
+		name: 'Kanban',
+		description: 'Classic workflow for continuous delivery',
+		columns: [
+			{ title: 'Backlog', sampleCards: ['Define acceptance criteria', 'Research competitor features'] },
+			{ title: 'To Do', sampleCards: ['Implement feature', 'Update documentation'] },
+			{ title: 'In Progress', sampleCards: ['Build login page', 'Write API tests'] },
+			{ title: 'Review', sampleCards: ['Request peer review', 'Address feedback'] },
+			{ title: 'Done', sampleCards: ['Deploy to production', 'Send release notes'] }
+		]
+	},
+	scrum: {
+		name: 'Scrum',
+		description: 'Sprint-based agile development workflow',
+		columns: [
+			{ title: 'Sprint Backlog', sampleCards: ['Refine user stories', 'Estimate story points'] },
+			{ title: 'In Progress', sampleCards: ['Build search component', 'Implement caching'] },
+			{ title: 'In Review', sampleCards: ['Review pull request', 'Check accessibility'] },
+			{ title: 'Testing', sampleCards: ['Write unit tests', 'Deploy to staging'] },
+			{ title: 'Done', sampleCards: ['Conduct sprint retrospective', 'Update project board'] }
+		]
+	},
+	personal: {
+		name: 'Personal',
+		description: 'Daily planning and personal task management',
+		columns: [
+			{ title: 'Ideas', sampleCards: ['Learn a new recipe', 'Start a side project'] },
+			{ title: 'Today', sampleCards: ['Read for 20 minutes', 'Respond to emails'] },
+			{ title: 'This Week', sampleCards: ['Plan weekend', 'Exercise three times'] },
+			{ title: 'Completed', sampleCards: ['Review weekly goals', 'Organize workspace'] }
+		]
+	}
+};
+
 function loadKanbanState(existingTodoIds: string[]): KanbanState {
 	if (typeof window === 'undefined') return { columns: structuredClone(DEFAULT_COLUMNS) };
 	try {
@@ -159,6 +200,60 @@ function syncWithTodos(currentTodos: Todo[]): void {
 todos.subscribe((currentTodos) => {
 	syncWithTodos(currentTodos);
 });
+
+// --- Template functions ---
+
+export function isBoardPristine(): boolean {
+	const state = get(kanbanState);
+	if (state.columns.length !== 3) return false;
+	const expectedIds = ['col-todo', 'col-in-progress', 'col-done'];
+	for (let i = 0; i < 3; i++) {
+		if (state.columns[i].id !== expectedIds[i]) return false;
+		if (state.columns[i].cardIds.length !== 0) return false;
+	}
+	return true;
+}
+
+export function applyTemplate(templateName: string): void {
+	const template = BOARD_TEMPLATES[templateName as keyof typeof BOARD_TEMPLATES];
+	if (!template) {
+		throw new Error(`Unknown template: "${templateName}"`);
+	}
+
+	const now = new Date().toISOString();
+	const newTodos: Todo[] = [];
+	const newColumns: KanbanColumn[] = [];
+
+	for (const colDef of template.columns) {
+		const colId = crypto.randomUUID();
+		const cardIds: string[] = [];
+
+		for (const cardTitle of colDef.sampleCards) {
+			const todoId = crypto.randomUUID();
+			cardIds.push(todoId);
+			newTodos.push({
+				id: todoId,
+				text: cardTitle,
+				description: '',
+				completed: false,
+				createdAt: now,
+				priority: 'none',
+				dueDate: null,
+				labelIds: [],
+				attachments: [],
+				comments: [],
+				archived: false,
+				activityLog: [{ type: 'created', timestamp: now }]
+			});
+		}
+
+		newColumns.push({ id: colId, title: colDef.title, cardIds });
+	}
+
+	// Set kanbanState FIRST so syncWithTodos finds all new IDs already in columns
+	kanbanState.set({ columns: newColumns });
+	todos.update(() => newTodos);
+}
 
 // --- Mutation functions ---
 

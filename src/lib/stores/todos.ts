@@ -2,6 +2,8 @@ import { writable, derived, get } from 'svelte/store';
 import type { Writable, Readable } from 'svelte/store';
 import { labels, getLabelsByIds } from './labels.js';
 import { broadcastTodos } from '../sync/broadcastSync.js';
+import { self, activeCollaborators } from './collaborators.js';
+import { push } from './notifications.js';
 
 export type Priority = 'none' | 'low' | 'medium' | 'high';
 
@@ -54,6 +56,19 @@ export type Filter = 'all' | 'active' | 'completed' | 'archived';
 
 export const STORAGE_KEY = 'todos';
 export const SORT_STORAGE_KEY = 'sort-by-due-date';
+
+export function parseMentions(body: string, collaboratorNames: string[]): string[] {
+	if (!body || collaboratorNames.length === 0) return [];
+	const matched = new Set<string>();
+	for (const name of collaboratorNames) {
+		const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+		const re = new RegExp(`(?<!\\w)@${escaped}(?!\\w)`, 'gi');
+		if (re.test(body)) {
+			matched.add(name.toLowerCase());
+		}
+	}
+	return Array.from(matched);
+}
 
 function loadTodos(): Todo[] {
 	if (typeof window === 'undefined') return [];
@@ -325,6 +340,24 @@ export function addComment(todoId: string, body: string, actorId?: string): void
 		})
 	);
 	broadcastTodos(get(todos));
+
+	// Mention detection
+	const selfStore = get(self);
+	const allNames = [selfStore.name, ...get(activeCollaborators).map(c => c.name)];
+	const mentioned = parseMentions(trimmed, allNames);
+	if (mentioned.includes(selfStore.name.toLowerCase())) {
+		const todo = get(todos).find(t => t.id === todoId);
+		let commenterName = 'Someone';
+		if (actorId) {
+			if (actorId === selfStore.id) {
+				commenterName = selfStore.name;
+			} else {
+				const collaborator = get(activeCollaborators).find(c => c.id === actorId);
+				if (collaborator) commenterName = collaborator.name;
+			}
+		}
+		push({ type: 'mention', title: 'You were mentioned', message: `Mentioned in "${todo?.text ?? 'a card'}" by ${commenterName}` });
+	}
 }
 
 export function editComment(todoId: string, commentId: string, body: string, actorId?: string): void {
@@ -379,6 +412,24 @@ export function addReply(todoId: string, commentId: string, body: string, actorI
 		})
 	);
 	broadcastTodos(get(todos));
+
+	// Mention detection
+	const selfStore = get(self);
+	const allNames = [selfStore.name, ...get(activeCollaborators).map(c => c.name)];
+	const mentioned = parseMentions(trimmed, allNames);
+	if (mentioned.includes(selfStore.name.toLowerCase())) {
+		const todo = get(todos).find(t => t.id === todoId);
+		let commenterName = 'Someone';
+		if (actorId) {
+			if (actorId === selfStore.id) {
+				commenterName = selfStore.name;
+			} else {
+				const collaborator = get(activeCollaborators).find(c => c.id === actorId);
+				if (collaborator) commenterName = collaborator.name;
+			}
+		}
+		push({ type: 'mention', title: 'You were mentioned', message: `Mentioned in "${todo?.text ?? 'a card'}" by ${commenterName}` });
+	}
 }
 
 export function editReply(todoId: string, commentId: string, replyId: string, body: string, actorId?: string): void {

@@ -1,0 +1,78 @@
+version: 9
+hash: sha256:8efd342d01d0
+updated: 2026-04-06T06:16:52.348Z
+requirements:
+  - id: notification-store
+    hash: sha256:1bced8cc3c3e
+    scenarios:
+      - push-adds-a-record-and-returns-its-id
+      - dismiss-removes-the-correct-record
+      - clearall-empties-the-store
+      - push-at-capacity-evicts-the-oldest-record
+      - push-below-capacity-does-not-evict
+      - dismiss-on-unknown-id-is-a-no-op
+  - id: toast-component
+    hash: sha256:f0825d02e3b1
+    scenarios:
+      - toasts-render-in-reverse-chronological-order
+      - close-button-dismisses-the-toast
+      - overdue-toast-has-red-accent
+      - mention-toast-has-blue-accent
+      - activity-toast-has-yellow-accent
+      - slide-in-transition-fires-on-mount
+      - toaster-is-mounted-at-the-page-root
+  - id: overdue-detector
+    hash: sha256:c20f88aa5359
+    scenarios:
+      - overdue-card-triggers-toast-on-page-load
+      - overdue-card-does-not-produce-a-duplicate-toast-after-the-interval-fires
+      - card-due-today-is-not-treated-as-overdue
+      - card-due-in-the-future-is-not-treated-as-overdue
+      - completed-overdue-card-is-skipped
+      - archived-overdue-card-is-skipped
+      - cleanup-function-stops-polling
+      - multiple-overdue-cards-each-produce-one-toast
+  - id: mention-parser
+    hash: sha256:09e3d3fdad69
+    scenarios:
+      - mention-of-current-user-fires-a-notification
+      - mention-is-case-insensitive
+      - mention-of-another-collaborator-does-not-fire-a-notification
+      - editing-a-comment-with-a-mention-does-not-re-fire
+      - mention-in-a-reply-fires-a-notification
+      - editing-a-reply-with-a-mention-does-not-re-fire
+      - partial-word-match-does-not-count-as-a-mention
+      - multiple-mentions-in-one-comment-body
+  - id: board-activity-notifications
+    hash: sha256:3c44780957bf
+    scenarios:
+      - card-move-in-another-tab-triggers-activity-toast
+      - card-move-in-the-current-tab-does-not-trigger-an-activity-toast
+      - new-column-in-another-tab-triggers-activity-toast
+      - column-rename-in-another-tab-triggers-activity-toast
+      - todos-updated-message-does-not-trigger-activity-toast
+      - multiple-simultaneous-column-changes-produce-one-notification-each
+  - id: notification-broadcast
+    hash: sha256:eb3dcc3c49d3
+    scenarios:
+      - notification-pushed-in-one-tab-appears-in-another-tab
+      - receiving-tab-does-not-re-broadcast-the-notification
+      - dismiss-in-one-tab-removes-toast-in-another-tab
+      - receiving-tab-does-not-re-broadcast-the-dismiss
+      - broadcast-is-silently-dropped-when-broadcastchannel-is-unavailable
+  - id: toast-auto-dismiss
+    hash: sha256:b8deeb0f7b77
+    scenarios:
+      - toast-auto-dismisses-after-5-seconds-of-no-interaction
+      - hover-pauses-the-auto-dismiss-countdown
+      - mouse-leave-resumes-countdown-from-remaining-time
+      - close-button-dismisses-before-the-timer-expires
+      - timer-is-cleared-on-component-destroy
+  - id: toast-accessibility
+    hash: sha256:f5dcf1e84f28
+    scenarios:
+      - aria-live-region-announces-new-toast-to-screen-readers
+      - close-button-has-descriptive-aria-label
+      - close-button-is-keyboard-focusable-and-activatable
+      - screen-reader-only-text-includes-title-and-message
+      - live-region-does-not-use-assertive-mode

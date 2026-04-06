@@ -13,6 +13,8 @@
 	import UndoRedoButtons from '$lib/components/UndoRedoButtons.svelte';
 	import LabelManager from '$lib/components/LabelManager.svelte';
 	import ShortcutsHelpModal from '$lib/components/ShortcutsHelpModal.svelte';
+	import Toaster from '$lib/components/Toaster.svelte';
+	import { startDueDateChecker } from '$lib/notifications/dueDateChecker.js';
 	import { viewPreference, kanbanState } from '$lib/stores/kanban.js';
 	import { undo, redo } from '$lib/stores/history.js';
 	import { todos } from '$lib/stores/todos.js';
@@ -58,6 +60,9 @@
 		// Initialize presence heartbeats and expiry polling
 		initPresence();
 
+		// Start due-date checker (runs first cycle synchronously, then every 60s)
+		const stopDueDateChecker = startDueDateChecker();
+
 		// Wire remote sync listener
 		const unsubscribe = listenForRemoteUpdates(
 			(t) => todos.set(t),
@@ -88,6 +93,7 @@
 			window.removeEventListener('keydown', handleKeydown);
 			unsubscribe();
 			destroyPresence();
+			stopDueDateChecker();
 		};
 	});
 </script>
@@ -164,6 +170,7 @@
 </div>
 <LabelManager bind:open={showLabelManager} />
 <ShortcutsHelpModal bind:open={showShortcutsHelp} />
+<Toaster />
 
 {#if showNamePrompt}
 	<div

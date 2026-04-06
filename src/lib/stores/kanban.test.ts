@@ -24,6 +24,19 @@ const localStorageMock = (() => {
 
 vi.stubGlobal('localStorage', localStorageMock);
 
+// Mock collaborators and notifications (transitively imported via todos.ts)
+const { writable: realWritable } = await import('svelte/store');
+vi.mock('./collaborators.js', () => ({
+	self: realWritable({ id: 'self-id', name: 'Anonymous', color: '#90a4ae', lastSeen: 0 }),
+	activeCollaborators: realWritable([])
+}));
+vi.mock('./notifications.js', () => ({
+	push: vi.fn(),
+	notifications: realWritable([]),
+	dismiss: vi.fn(),
+	clearAll: vi.fn()
+}));
+
 // Mock crypto.randomUUID for deterministic IDs
 let uuidCounter = 0;
 vi.stubGlobal('crypto', {

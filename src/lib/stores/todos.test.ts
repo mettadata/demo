@@ -7,7 +7,23 @@ vi.mock('../sync/broadcastSync.js', () => ({
 	broadcastTodos: (...args: unknown[]) => mockBroadcastTodos(...args),
 	broadcastKanban: vi.fn(),
 	broadcastHeartbeat: vi.fn(),
-	listenForRemoteUpdates: vi.fn(() => () => {})
+	listenForRemoteUpdates: vi.fn(() => () => {}),
+	channel: null
+}));
+
+// Mock collaborators module
+const { writable: realWritable } = await import('svelte/store');
+const mockSelf = realWritable({ id: 'self-id', name: 'Anonymous', color: '#90a4ae', lastSeen: 0 });
+const mockActiveCollaborators = realWritable<{ id: string; name: string; color: string; lastSeen: number }[]>([]);
+vi.mock('./collaborators.js', () => ({
+	self: mockSelf,
+	activeCollaborators: mockActiveCollaborators
+}));
+
+// Mock notifications module
+const mockPush = vi.fn();
+vi.mock('./notifications.js', () => ({
+	push: (...args: unknown[]) => mockPush(...args)
 }));
 
 // Mock localStorage before importing the store module
@@ -71,6 +87,7 @@ describe('todo store', () => {
 		vi.mocked(localStorageMock.getItem).mockClear();
 		vi.mocked(localStorageMock.setItem).mockClear();
 		mockBroadcastTodos.mockClear();
+		mockPush.mockClear();
 		uuidCounter = 0;
 
 		const mod = await import('./todos');
@@ -870,5 +887,140 @@ describe('todo store', () => {
 
 		// canUndo should still be false because direct set bypasses snapshot
 		expect(get(historyMod.canUndo)).toBe(false);
+	});
+});
+
+describe('parseMentions', () => {
+	let parseMentions: typeof import('./todos').parseMentions;
+
+	beforeEach(async () => {
+		vi.resetModules();
+		const mod = await import('./todos');
+		parseMentions = mod.parseMentions;
+	});
+
+	it('finds a mentioned collaborator name', () => {
+		const result = parseMentions('@Alice can you check?', ['Alice', 'Bob']);
+		expect(result).toEqual(['alice']);
+	});
+
+	it('does not match partial word like email@alice.com', () => {
+		const result = parseMentions('email@alice.com', ['alice']);
+		expect(result).toEqual([]);
+	});
+
+	it('deduplicates repeated mentions of the same name', () => {
+		const result = parseMentions('@alice @alice again', ['Alice']);
+		expect(result).toEqual(['alice']);
+	});
+
+	it('finds multiple mentioned collaborators', () => {
+		const result = parseMentions('@Alice and @Bob', ['Alice', 'Bob']);
+		expect(result).toEqual(expect.arrayContaining(['alice', 'bob']));
+		expect(result).toHaveLength(2);
+	});
+
+	it('returns empty array for empty body', () => {
+		expect(parseMentions('', ['Alice'])).toEqual([]);
+	});
+
+	it('returns empty array for empty collaborator names', () => {
+		expect(parseMentions('@Alice hello', [])).toEqual([]);
+	});
+
+	it('handles name with regex special characters without throwing', () => {
+		expect(() => parseMentions('@C++ hello', ['C++'])).not.toThrow();
+	});
+});
+
+describe('mention integration (addComment / addReply)', () => {
+	let todos: typeof import('./todos').todos;
+	let addTodo: typeof import('./todos').addTodo;
+	let addComment: typeof import('./todos').addComment;
+	let addReply: typeof import('./todos').addReply;
+	let editComment: typeof import('./todos').editComment;
+	let editReply: typeof import('./todos').editReply;
+
+	beforeEach(async () => {
+		vi.resetModules();
+		localStorageMock.clear();
+		vi.mocked(localStorageMock.getItem).mockClear();
+		vi.mocked(localStorageMock.setItem).mockClear();
+		mockBroadcastTodos.mockClear();
+		mockPush.mockClear();
+		uuidCounter = 0;
+
+		// Set up self as Alice
+		mockSelf.set({ id: 'alice-id', name: 'Alice', color: '#90a4ae', lastSeen: 0 });
+		mockActiveCollaborators.set([]);
+
+		const mod = await import('./todos');
+		todos = mod.todos;
+		addTodo = mod.addTodo;
+		addComment = mod.addComment;
+		addReply = mod.addReply;
+		editComment = mod.editComment;
+		editReply = mod.editReply;
+
+		todos.set([]);
+	});
+
+	it('addComment with @Alice when self is Alice triggers mention notification', () => {
+		addTodo('Fix login bug');
+		const todoId = get(todos)[0].id;
+		addComment(todoId, '@Alice please review');
+		expect(mockPush).toHaveBeenCalledTimes(1);
+		expect(mockPush).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: 'mention',
+				title: 'You were mentioned'
+			})
+		);
+	});
+
+	it('addComment with @Bob when self is Alice does NOT trigger mention notification', () => {
+		mockActiveCollaborators.set([{ id: 'bob-id', name: 'Bob', color: '#000', lastSeen: 0 }]);
+		addTodo('Fix login bug');
+		const todoId = get(todos)[0].id;
+		addComment(todoId, '@Bob please help');
+		expect(mockPush).not.toHaveBeenCalled();
+	});
+
+	it('addReply with @Alice when self is Alice triggers mention notification', () => {
+		addTodo('Fix login bug');
+		const todoId = get(todos)[0].id;
+		addComment(todoId, 'Parent comment');
+		const commentId = get(todos)[0].comments[0].id;
+		mockPush.mockClear();
+		addReply(todoId, commentId, '@Alice check this');
+		expect(mockPush).toHaveBeenCalledTimes(1);
+		expect(mockPush).toHaveBeenCalledWith(
+			expect.objectContaining({
+				type: 'mention',
+				title: 'You were mentioned'
+			})
+		);
+	});
+
+	it('editComment does NOT trigger mention notification', () => {
+		addTodo('Fix login bug');
+		const todoId = get(todos)[0].id;
+		addComment(todoId, 'Original comment');
+		const commentId = get(todos)[0].comments[0].id;
+		mockPush.mockClear();
+		editComment(todoId, commentId, '@Alice updated comment');
+		expect(mockPush).not.toHaveBeenCalled();
+	});
+
+	it('editReply does not trigger mention notification', () => {
+		addTodo('Fix login bug');
+		const todoId = get(todos)[0].id;
+		addComment(todoId, 'Parent comment');
+		const commentId = get(todos)[0].comments[0].id;
+		addReply(todoId, commentId, 'Original reply');
+		const replyId = get(todos)[0].comments[0].replies[0].id;
+		mockPush.mockClear();
+		editReply(todoId, commentId, replyId, '@Alice updated reply');
+		expect(mockPush).not.toHaveBeenCalled();
 	});
 });

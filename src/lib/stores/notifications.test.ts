@@ -115,6 +115,27 @@ describe('notifications store', () => {
 		expect(items.find((n) => n.id === newId)).toBeDefined();
 	});
 
+	it('eviction removes the record with the lowest createdAt regardless of array position', () => {
+		// Manually insert notifications with out-of-order createdAt values
+		// Simulate a scenario where a channel-received notification has an earlier timestamp
+		// but was appended later in the array
+		notifications.set([
+			{ id: 'a', type: 'activity', title: 'A', message: 'msg', createdAt: '2026-01-02T00:00:00.000Z' },
+			{ id: 'b', type: 'activity', title: 'B', message: 'msg', createdAt: '2026-01-01T00:00:00.000Z' }, // oldest, but not first
+			{ id: 'c', type: 'activity', title: 'C', message: 'msg', createdAt: '2026-01-03T00:00:00.000Z' },
+			{ id: 'd', type: 'activity', title: 'D', message: 'msg', createdAt: '2026-01-04T00:00:00.000Z' },
+			{ id: 'e', type: 'activity', title: 'E', message: 'msg', createdAt: '2026-01-05T00:00:00.000Z' }
+		]);
+
+		// Push a 6th - should evict 'b' (lowest createdAt), not 'a' (first element)
+		push({ type: 'activity', title: 'F', message: 'msg' });
+		const items = get(notifications);
+
+		expect(items).toHaveLength(5);
+		expect(items.find((n) => n.id === 'b')).toBeUndefined(); // oldest by createdAt evicted
+		expect(items.find((n) => n.id === 'a')).toBeDefined(); // first element preserved
+	});
+
 	it('push below capacity does not evict', () => {
 		const ids: string[] = [];
 		for (let i = 0; i < 4; i++) {

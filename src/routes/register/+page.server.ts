@@ -5,7 +5,7 @@ import { createSession } from '$lib/server/sessions.js';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
-	if ((locals as Record<string, unknown>).user) {
+	if (locals.user) {
 		throw redirect(303, '/');
 	}
 };

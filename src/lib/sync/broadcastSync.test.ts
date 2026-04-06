@@ -163,7 +163,8 @@ describe('board activity notifications', () => {
 	let listenForRemoteUpdates: typeof import('./broadcastSync').listenForRemoteUpdates;
 	let _injectLazyDeps: typeof import('./broadcastSync')._injectLazyDeps;
 
-	let mockPush: ReturnType<typeof vi.fn>;
+	// eslint-disable-next-line @typescript-eslint/no-explicit-any
+	let mockPush: any;
 	let mockKanbanState: import('svelte/store').Writable<import('../stores/kanban.js').KanbanState>;
 	let mockTodos: import('svelte/store').Writable<import('../stores/todos.js').Todo[]>;
 

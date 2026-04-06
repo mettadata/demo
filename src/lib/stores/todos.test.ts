@@ -7,7 +7,23 @@ vi.mock('../sync/broadcastSync.js', () => ({
 	broadcastTodos: (...args: unknown[]) => mockBroadcastTodos(...args),
 	broadcastKanban: vi.fn(),
 	broadcastHeartbeat: vi.fn(),
-	listenForRemoteUpdates: vi.fn(() => () => {})
+	listenForRemoteUpdates: vi.fn(() => () => {}),
+	channel: null
+}));
+
+// Mock collaborators module
+const { writable: realWritable } = await import('svelte/store');
+const mockSelf = realWritable({ id: 'self-id', name: 'Anonymous', color: '#90a4ae', lastSeen: 0 });
+const mockActiveCollaborators = realWritable<{ id: string; name: string; color: string; lastSeen: number }[]>([]);
+vi.mock('./collaborators.js', () => ({
+	self: mockSelf,
+	activeCollaborators: mockActiveCollaborators
+}));
+
+// Mock notifications module
+const mockPush = vi.fn();
+vi.mock('./notifications.js', () => ({
+	push: (...args: unknown[]) => mockPush(...args)
 }));
 
 // Mock localStorage before importing the store module
@@ -71,6 +87,7 @@ describe('todo store', () => {
 		vi.mocked(localStorageMock.getItem).mockClear();
 		vi.mocked(localStorageMock.setItem).mockClear();
 		mockBroadcastTodos.mockClear();
+		mockPush.mockClear();
 		uuidCounter = 0;
 
 		const mod = await import('./todos');

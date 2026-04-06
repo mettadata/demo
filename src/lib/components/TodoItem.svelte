@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { toggleTodo, removeTodo, updateTodo } from '$lib/stores/todos.js';
+	import { toggleTodo, removeTodo, updateTodo, archiveTodo, unarchiveTodo } from '$lib/stores/todos.js';
 	import type { Todo, Priority } from '$lib/stores/todos.js';
 	import PriorityBadge from './PriorityBadge.svelte';
 	import DueDateDisplay from './DueDateDisplay.svelte';
@@ -29,6 +29,24 @@
 					<LabelChip {label} />
 				{/each}
 			</div>
+		{/if}
+		{#if todo.completed && !todo.archived}
+			<button
+				onclick={() => archiveTodo(todo.id)}
+				aria-label="Archive {todo.text}"
+				class="text-gray-400 hover:text-amber-600 dark:hover:text-amber-400 px-2 py-1"
+			>
+				Archive
+			</button>
+		{/if}
+		{#if todo.archived}
+			<button
+				onclick={() => unarchiveTodo(todo.id)}
+				aria-label="Unarchive {todo.text}"
+				class="text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 px-2 py-1"
+			>
+				Unarchive
+			</button>
 		{/if}
 		<button
 			onclick={() => removeTodo(todo.id)}

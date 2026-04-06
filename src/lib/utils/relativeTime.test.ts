@@ -92,7 +92,15 @@ describe('formatActivityDescription', () => {
 		expect(formatActivityDescription('edited')).toBe('Edited');
 	});
 
+	it('formats archived event type', () => {
+		expect(formatActivityDescription('archived')).toBe('Archived');
+	});
+
+	it('formats unarchived event type', () => {
+		expect(formatActivityDescription('unarchived')).toBe('Unarchived');
+	});
+
 	it('returns type string for unknown event type', () => {
-		expect(formatActivityDescription('archived')).toBe('archived');
+		expect(formatActivityDescription('some_unknown_type')).toBe('some_unknown_type');
 	});
 });

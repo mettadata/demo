@@ -110,7 +110,7 @@ export const kanbanBoard: Readable<ResolvedColumn[]> = derived(
 			title: col.title,
 			cards: col.cardIds
 				.map((id) => todoMap.get(id))
-				.filter((t): t is Todo => t !== undefined)
+				.filter((t): t is Todo => t !== undefined && !t.archived)
 		}));
 	}
 );

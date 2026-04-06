@@ -4,7 +4,7 @@ import { labels, getLabelsByIds } from './labels.js';
 
 export type Priority = 'none' | 'low' | 'medium' | 'high';
 
-export type ActivityEventType = 'created' | 'edited' | 'moved' | 'completed' | 'uncompleted' | 'attachment_added' | 'attachment_removed';
+export type ActivityEventType = 'created' | 'edited' | 'moved' | 'completed' | 'uncompleted' | 'attachment_added' | 'attachment_removed' | 'archived' | 'unarchived';
 
 export interface ActivityEvent {
 	type: ActivityEventType;
@@ -46,9 +46,10 @@ export interface Todo {
 	activityLog: ActivityEvent[];
 	attachments: Attachment[];
 	comments: Comment[];
+	archived: boolean;
 }
 
-export type Filter = 'all' | 'active' | 'completed';
+export type Filter = 'all' | 'active' | 'completed' | 'archived';
 
 export const STORAGE_KEY = 'todos';
 export const SORT_STORAGE_KEY = 'sort-by-due-date';
@@ -70,7 +71,8 @@ function loadTodos(): Todo[] {
 			comments: Array.isArray(t.comments) ? (t.comments as Comment[]) : [],
 			activityLog: Array.isArray(t.activityLog)
 				? (t.activityLog as ActivityEvent[])
-				: [{ type: 'created' as const, timestamp: (t.createdAt as string) ?? new Date().toISOString() }]
+				: [{ type: 'created' as const, timestamp: (t.createdAt as string) ?? new Date().toISOString() }],
+			archived: (t.archived as boolean) ?? false
 		})) as Todo[];
 	} catch {
 		return [];
@@ -122,13 +124,19 @@ export const filteredTodos: Readable<Todo[]> = derived(
 	[todos, filter, searchQuery, labels],
 	([$todos, $filter, $searchQuery, $labels]) => {
 		let result = $todos;
-		switch ($filter) {
-			case 'active':
-				result = result.filter((t) => !t.completed);
-				break;
-			case 'completed':
-				result = result.filter((t) => t.completed);
-				break;
+		// Show archived cards only when explicitly filtering for them
+		if ($filter === 'archived') {
+			result = result.filter((t) => t.archived);
+		} else {
+			result = result.filter((t) => !t.archived);
+			switch ($filter) {
+				case 'active':
+					result = result.filter((t) => !t.completed);
+					break;
+				case 'completed':
+					result = result.filter((t) => t.completed);
+					break;
+			}
 		}
 		if ($searchQuery.trim() !== '') {
 			const query = $searchQuery.trim().toLowerCase();
@@ -188,6 +196,7 @@ export function addTodo(text: string): void {
 			labelIds: [],
 			attachments: [],
 			comments: [],
+			archived: false,
 			activityLog: [{ type: 'created', timestamp: now }]
 		}
 	]);
@@ -393,6 +402,36 @@ export function deleteReply(todoId: string, commentId: string, replyId: string):
 					if (c.id !== commentId) return c;
 					return { ...c, replies: c.replies.filter((r) => r.id !== replyId) };
 				})
+			};
+		})
+	);
+}
+
+export function archiveTodo(id: string): void {
+	snapshot();
+	const now = new Date().toISOString();
+	todos.update((current) =>
+		current.map((t) => {
+			if (t.id !== id) return t;
+			return {
+				...t,
+				archived: true,
+				activityLog: [...t.activityLog, { type: 'archived' as const, timestamp: now }]
+			};
+		})
+	);
+}
+
+export function unarchiveTodo(id: string): void {
+	snapshot();
+	const now = new Date().toISOString();
+	todos.update((current) =>
+		current.map((t) => {
+			if (t.id !== id) return t;
+			return {
+				...t,
+				archived: false,
+				activityLog: [...t.activityLog, { type: 'unarchived' as const, timestamp: now }]
 			};
 		})
 	);

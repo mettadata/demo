@@ -51,6 +51,8 @@ describe('todo store', () => {
 	let addReply: typeof import('./todos').addReply;
 	let editReply: typeof import('./todos').editReply;
 	let deleteReply: typeof import('./todos').deleteReply;
+	let archiveTodo: typeof import('./todos').archiveTodo;
+	let unarchiveTodo: typeof import('./todos').unarchiveTodo;
 	let STORAGE_KEY: string;
 	let SORT_STORAGE_KEY: string;
 
@@ -82,6 +84,8 @@ describe('todo store', () => {
 		addReply = mod.addReply;
 		editReply = mod.editReply;
 		deleteReply = mod.deleteReply;
+		archiveTodo = mod.archiveTodo;
+		unarchiveTodo = mod.unarchiveTodo;
 		STORAGE_KEY = mod.STORAGE_KEY;
 		SORT_STORAGE_KEY = mod.SORT_STORAGE_KEY;
 
@@ -327,9 +331,9 @@ describe('todo store', () => {
 
 	it('sortTodosByDueDate sorts ascending with nulls last', () => {
 		const input = [
-			{ id: '1', text: 'C', description: '', completed: false, createdAt: '', priority: 'none' as const, dueDate: '2025-12-01', labelIds: [], activityLog: [], attachments: [], comments: [] },
-			{ id: '2', text: 'A', description: '', completed: false, createdAt: '', priority: 'none' as const, dueDate: null, labelIds: [], activityLog: [], attachments: [], comments: [] },
-			{ id: '3', text: 'B', description: '', completed: false, createdAt: '', priority: 'none' as const, dueDate: '2025-06-01', labelIds: [], activityLog: [], attachments: [], comments: [] }
+			{ id: '1', text: 'C', description: '', completed: false, createdAt: '', priority: 'none' as const, dueDate: '2025-12-01', labelIds: [], activityLog: [], attachments: [], comments: [], archived: false },
+			{ id: '2', text: 'A', description: '', completed: false, createdAt: '', priority: 'none' as const, dueDate: null, labelIds: [], activityLog: [], attachments: [], comments: [], archived: false },
+			{ id: '3', text: 'B', description: '', completed: false, createdAt: '', priority: 'none' as const, dueDate: '2025-06-01', labelIds: [], activityLog: [], attachments: [], comments: [], archived: false }
 		];
 		const sorted = sortTodosByDueDate(input);
 		expect(sorted[0].dueDate).toBe('2025-06-01');
@@ -631,5 +635,97 @@ describe('todo store', () => {
 		deleteReply(id, commentId, replyId);
 		expect(get(todos)[0].comments[0].replies).toHaveLength(1);
 		expect(get(todos)[0].comments[0].replies[0].body).toBe('Reply 2');
+	});
+
+	it('addTodo includes archived: false default', () => {
+		addTodo('Test todo');
+		expect(get(todos)[0].archived).toBe(false);
+	});
+
+	it('legacy migration defaults missing archived to false', async () => {
+		const legacyTodo = {
+			id: 'legacy-arch',
+			text: 'Old todo no archived',
+			completed: true,
+			createdAt: '2024-01-01T00:00:00.000Z',
+			priority: 'none',
+			dueDate: null,
+			description: '',
+			labelIds: [],
+			attachments: [],
+			comments: []
+		};
+		localStorageMock.setItem(STORAGE_KEY, JSON.stringify([legacyTodo]));
+
+		vi.resetModules();
+		const mod2 = await import('./todos');
+		const items = get(mod2.todos);
+		expect(items).toHaveLength(1);
+		expect(items[0].archived).toBe(false);
+	});
+
+	it('archiveTodo sets archived to true and logs activity', () => {
+		addTodo('Test todo');
+		const id = get(todos)[0].id;
+		toggleTodo(id); // complete it
+		archiveTodo(id);
+		const item = get(todos)[0];
+		expect(item.archived).toBe(true);
+		const lastEvent = item.activityLog[item.activityLog.length - 1];
+		expect(lastEvent.type).toBe('archived');
+	});
+
+	it('unarchiveTodo sets archived to false and logs activity', () => {
+		addTodo('Test todo');
+		const id = get(todos)[0].id;
+		toggleTodo(id);
+		archiveTodo(id);
+		unarchiveTodo(id);
+		const item = get(todos)[0];
+		expect(item.archived).toBe(false);
+		const lastEvent = item.activityLog[item.activityLog.length - 1];
+		expect(lastEvent.type).toBe('unarchived');
+	});
+
+	it('filteredTodos hides archived cards by default', () => {
+		addTodo('Active todo');
+		addTodo('Archived todo');
+		const id = get(todos)[1].id;
+		toggleTodo(id);
+		archiveTodo(id);
+
+		filter.set('all');
+		expect(get(filteredTodos)).toHaveLength(1);
+		expect(get(filteredTodos)[0].text).toBe('Active todo');
+	});
+
+	it('filteredTodos shows only archived when filter is archived', () => {
+		addTodo('Active todo');
+		addTodo('Archived todo');
+		const id = get(todos)[1].id;
+		toggleTodo(id);
+		archiveTodo(id);
+
+		filter.set('archived');
+		const result = get(filteredTodos);
+		expect(result).toHaveLength(1);
+		expect(result[0].text).toBe('Archived todo');
+	});
+
+	it('archived cards are hidden from active and completed filters', () => {
+		addTodo('Active todo');
+		addTodo('Completed todo');
+		addTodo('Archived todo');
+		toggleTodo(get(todos)[1].id); // complete
+		toggleTodo(get(todos)[2].id); // complete
+		archiveTodo(get(todos)[2].id); // archive
+
+		filter.set('active');
+		expect(get(filteredTodos)).toHaveLength(1);
+		expect(get(filteredTodos)[0].text).toBe('Active todo');
+
+		filter.set('completed');
+		expect(get(filteredTodos)).toHaveLength(1);
+		expect(get(filteredTodos)[0].text).toBe('Completed todo');
 	});
 });

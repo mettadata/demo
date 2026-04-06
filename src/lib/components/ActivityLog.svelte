@@ -15,7 +15,9 @@
 		moved: '\u2192',
 		edited: '\u270E',
 		attachment_added: '\u{1F4CE}',
-		attachment_removed: '\u2716'
+		attachment_removed: '\u2716',
+		archived: '\u{1F4E6}',
+		unarchived: '\u{1F4E4}'
 	};
 </script>
 

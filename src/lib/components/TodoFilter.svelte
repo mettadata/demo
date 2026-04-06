@@ -5,7 +5,8 @@
 	const options: { label: string; value: Filter }[] = [
 		{ label: 'All', value: 'all' },
 		{ label: 'Active', value: 'active' },
-		{ label: 'Completed', value: 'completed' }
+		{ label: 'Completed', value: 'completed' },
+		{ label: 'Archived', value: 'archived' }
 	];
 </script>
 

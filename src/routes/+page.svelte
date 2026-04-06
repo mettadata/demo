@@ -24,6 +24,9 @@
 
 	let { data } = $props();
 
+	// User is guaranteed by hooks.server.ts redirect guard
+	const user = data.user!;
+
 	let showLabelManager = $state(false);
 	let showShortcutsHelp = $state(false);
 	let showNameEditor = $state(false);
@@ -42,10 +45,10 @@
 
 	onMount(() => {
 		// Initialize stores with authenticated userId (must be first)
-		initStores(data.user.id);
+		initStores(user.id);
 
 		// Set collaborator display name to authenticated username
-		updateSelfName(data.user.username);
+		updateSelfName(user.username);
 
 		// Initialize presence heartbeats and expiry polling
 		initPresence();
@@ -146,7 +149,7 @@
 			<ViewToggle />
 		</div>
 	</div>
-	<TodoInput userId={data.user.id} />
+	<TodoInput userId={user.id} />
 	<SearchBar />
 	{#if $viewPreference === 'list'}
 		<TodoFilter />

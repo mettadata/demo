@@ -55,6 +55,19 @@ export type Filter = 'all' | 'active' | 'completed' | 'archived';
 export const STORAGE_KEY = 'todos';
 export const SORT_STORAGE_KEY = 'sort-by-due-date';
 
+export function parseMentions(body: string, collaboratorNames: string[]): string[] {
+	if (!body || collaboratorNames.length === 0) return [];
+	const matched = new Set<string>();
+	for (const name of collaboratorNames) {
+		const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+		const re = new RegExp(`(?<!\\w)@${escaped}(?!\\w)`, 'gi');
+		if (re.test(body)) {
+			matched.add(name.toLowerCase());
+		}
+	}
+	return Array.from(matched);
+}
+
 function loadTodos(): Todo[] {
 	if (typeof window === 'undefined') return [];
 	try {

@@ -39,6 +39,9 @@ describe('kanban store', () => {
 	let deleteColumn: typeof import('./kanban.js').deleteColumn;
 	let moveColumn: typeof import('./kanban.js').moveColumn;
 	let moveCard: typeof import('./kanban.js').moveCard;
+	let isBoardPristine: typeof import('./kanban.js').isBoardPristine;
+	let applyTemplate: typeof import('./kanban.js').applyTemplate;
+	let BOARD_TEMPLATES: typeof import('./kanban.js').BOARD_TEMPLATES;
 	let todos: typeof import('./todos.js').todos;
 
 	beforeEach(async () => {
@@ -61,6 +64,9 @@ describe('kanban store', () => {
 		deleteColumn = mod.deleteColumn;
 		moveColumn = mod.moveColumn;
 		moveCard = mod.moveCard;
+		isBoardPristine = mod.isBoardPristine;
+		applyTemplate = mod.applyTemplate;
+		BOARD_TEMPLATES = mod.BOARD_TEMPLATES;
 	});
 
 	it('initializes with 3 default columns when no localStorage', () => {
@@ -288,6 +294,109 @@ describe('kanban store', () => {
 			const state = get(kanbanState);
 			expect(state.columns[0].cardIds).toEqual(['card-a', 'card-c']);
 			expect(state.columns[1].cardIds).toEqual(['card-b', 'card-d', 'card-e']);
+		});
+	});
+
+	describe('BOARD_TEMPLATES', () => {
+		it('has exactly 3 templates: kanban, scrum, personal', () => {
+			expect(Object.keys(BOARD_TEMPLATES)).toEqual(['kanban', 'scrum', 'personal']);
+		});
+
+		it('each template has name, description, and non-empty columns', () => {
+			for (const key of Object.keys(BOARD_TEMPLATES) as Array<keyof typeof BOARD_TEMPLATES>) {
+				const t = BOARD_TEMPLATES[key];
+				expect(t.name).toBeTruthy();
+				expect(t.description).toBeTruthy();
+				expect(t.columns.length).toBeGreaterThan(0);
+				for (const col of t.columns) {
+					expect(col.title).toBeTruthy();
+					expect(col.sampleCards.length).toBeGreaterThan(0);
+				}
+			}
+		});
+	});
+
+	describe('isBoardPristine', () => {
+		it('returns true for default empty board', () => {
+			expect(isBoardPristine()).toBe(true);
+		});
+
+		it('returns false when a card exists', () => {
+			kanbanState.update((s) => {
+				s.columns[0].cardIds = ['card-1'];
+				return { columns: [...s.columns] };
+			});
+			expect(isBoardPristine()).toBe(false);
+		});
+
+		it('returns false after applying a template', () => {
+			applyTemplate('kanban');
+			expect(isBoardPristine()).toBe(false);
+		});
+
+		it('returns false when column count differs', () => {
+			addColumn('Extra');
+			expect(isBoardPristine()).toBe(false);
+		});
+	});
+
+	describe('applyTemplate', () => {
+		it('applies kanban template with 5 columns and 10 cards', () => {
+			applyTemplate('kanban');
+			const state = get(kanbanState);
+			expect(state.columns).toHaveLength(5);
+			expect(state.columns[0].title).toBe('Backlog');
+
+			const allCardIds = state.columns.flatMap((c) => c.cardIds);
+			expect(allCardIds).toHaveLength(10);
+
+			const todosValue = get(todos);
+			expect(todosValue).toHaveLength(10);
+		});
+
+		it('applies scrum template with 5 columns', () => {
+			applyTemplate('scrum');
+			const state = get(kanbanState);
+			expect(state.columns).toHaveLength(5);
+			expect(state.columns[0].title).toBe('Sprint Backlog');
+		});
+
+		it('applies personal template with 4 columns', () => {
+			applyTemplate('personal');
+			const state = get(kanbanState);
+			expect(state.columns).toHaveLength(4);
+			expect(state.columns[0].title).toBe('Ideas');
+		});
+
+		it('overwrites existing board data', () => {
+			// Start with some custom state
+			kanbanState.update((s) => {
+				s.columns[0].cardIds = ['old-card'];
+				return { columns: [...s.columns] };
+			});
+
+			applyTemplate('personal');
+			const state = get(kanbanState);
+			expect(state.columns).toHaveLength(4);
+			const allCardIds = state.columns.flatMap((c) => c.cardIds);
+			expect(allCardIds).not.toContain('old-card');
+		});
+
+		it('throws on invalid template name', () => {
+			expect(() => applyTemplate('nonexistent')).toThrow('Unknown template: "nonexistent"');
+		});
+
+		it('creates todos with correct structure', () => {
+			applyTemplate('personal');
+			const todosValue = get(todos);
+			for (const todo of todosValue) {
+				expect(todo.id).toBeTruthy();
+				expect(todo.text).toBeTruthy();
+				expect(todo.completed).toBe(false);
+				expect(todo.archived).toBe(false);
+				expect(todo.activityLog).toHaveLength(1);
+				expect(todo.activityLog[0].type).toBe('created');
+			}
 		});
 	});
 });

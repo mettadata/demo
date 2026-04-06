@@ -15,7 +15,8 @@ export async function hashPassword(password: string): Promise<string> {
 	const derived = await scryptAsync(password, salt, DK_LEN, {
 		N: SCRYPT_N,
 		r: SCRYPT_R,
-		p: SCRYPT_P
+		p: SCRYPT_P,
+		maxmem: 128 * SCRYPT_N * SCRYPT_R * 2
 	});
 
 	return `${salt.toString('hex')}:${derived.toString('hex')}`;
@@ -32,7 +33,8 @@ export async function verifyPassword(password: string, stored: string): Promise<
 	const derived = await scryptAsync(password, salt, DK_LEN, {
 		N: SCRYPT_N,
 		r: SCRYPT_R,
-		p: SCRYPT_P
+		p: SCRYPT_P,
+		maxmem: 128 * SCRYPT_N * SCRYPT_R * 2
 	});
 
 	return timingSafeEqual(storedHash, derived);

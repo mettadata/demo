@@ -1,12 +1,21 @@
 <script lang="ts">
-	import { setContext } from 'svelte';
-	import { kanbanBoard, addColumn, moveCard } from '$lib/stores/kanban.js';
+	import { setContext, onMount } from 'svelte';
+	import { kanbanBoard, addColumn, moveCard, isBoardPristine, applyTemplate } from '$lib/stores/kanban.js';
 	import { get } from 'svelte/store';
 	import KanbanColumn from './KanbanColumn.svelte';
+	import BoardTemplateSelector from './BoardTemplateSelector.svelte';
 
 	let showInput = $state(false);
 	let newColumnTitle = $state('');
 	let announceText = $state('');
+	let showTemplateSelector = $state(false);
+	let selectorDismissed = $state(false);
+
+	onMount(() => {
+		if (isBoardPristine() && !selectorDismissed) {
+			showTemplateSelector = true;
+		}
+	});
 
 	let keyboardDragState = $state<{
 		cardId: string | null;
@@ -130,7 +139,7 @@
 		<KanbanColumn {column} />
 	{/each}
 
-	<div class="w-72 flex-shrink-0">
+	<div class="w-72 flex-shrink-0 space-y-2">
 		{#if showInput}
 			<input
 				type="text"
@@ -148,5 +157,23 @@
 				+ Add Column
 			</button>
 		{/if}
+		<button
+			onclick={() => {
+				if (window.confirm('Applying a new template will replace all current columns and cards. Continue?')) {
+					selectorDismissed = false;
+					showTemplateSelector = true;
+				}
+			}}
+			class="w-full border-2 border-dashed border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-500 hover:border-gray-400 hover:text-gray-600 cursor-pointer dark:border-gray-600 dark:text-gray-400 dark:hover:border-gray-500 dark:hover:text-gray-300"
+		>
+			Change template
+		</button>
 	</div>
 </div>
+
+{#if showTemplateSelector}
+	<BoardTemplateSelector
+		onselect={(name) => { applyTemplate(name); showTemplateSelector = false; }}
+		ondismiss={() => { showTemplateSelector = false; selectorDismissed = true; }}
+	/>
+{/if}
